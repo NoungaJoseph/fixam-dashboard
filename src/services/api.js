@@ -51,6 +51,7 @@ export const dashboardService = {
   verifyProvider: (data) => api.post('/admin/verify-provider', data),
   approveTransaction: (data) => api.post('/admin/approve-transaction', data),
   getPendingTransactions: () => api.get('/admin/pending-transactions'),
+  getTransactions: () => api.get('/admin/transactions'),
   getReports: () => api.get('/admin/reports'),
   updateReportStatus: (id, data) => api.put(`/admin/reports/${id}/status`, data),
   getFeedback: () => api.get('/admin/feedback'),
@@ -60,6 +61,9 @@ export const dashboardService = {
   approveJob: (id) => api.put(`/admin/jobs/${id}/approve`),
   rejectJob: (id, data) => api.put(`/admin/jobs/${id}/reject`, data),
   getJobs: () => api.get('/jobs/all'),
+  getSupportConversations: () => api.get('/admin/support-conversations'),
+  getChatMessages: (conversationId) => api.get(`/chat/${conversationId}/messages`),
+  sendChatMessage: (data) => api.post('/chat/send', data),
 };
 
 export default api;

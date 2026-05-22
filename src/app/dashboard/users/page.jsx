@@ -153,35 +153,74 @@ export default function UsersPage() {
 
       {selectedUser && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-6">
+          <div className="bg-white max-w-5xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-6">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-2xl font-bold text-slate-900">{selectedUser.fullName || 'No Name'}</h3>
                 <p className="text-sm text-slate-500">{selectedUser.phone} • {selectedUser.email || 'No email'}</p>
               </div>
-              <button onClick={() => setSelectedUser(null)} className="px-3 py-1 border rounded-lg text-sm">Close</button>
+              <button onClick={() => setSelectedUser(null)} className="px-3 py-1 border text-sm">Close</button>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="rounded-xl border p-4"><p className="text-xs text-slate-400 font-bold">Role</p><p className="font-bold">{selectedUser.role}</p></div>
-              <div className="rounded-xl border p-4"><p className="text-xs text-slate-400 font-bold">Coins</p><p className="font-bold">{selectedUser.wallet?.balance || 0}</p></div>
-              <div className="rounded-xl border p-4"><p className="text-xs text-slate-400 font-bold">Status</p><p className={`font-bold ${selectedUser.isBlocked ? 'text-red-600' : 'text-emerald-600'}`}>{selectedUser.isBlocked ? 'Blocked' : 'Active'}</p></div>
+            <div className="grid md:grid-cols-4 gap-4">
+              <div className="border p-4"><p className="text-xs text-slate-400 font-bold">Role</p><p className="font-bold">{selectedUser.role}</p></div>
+              <div className="border p-4"><p className="text-xs text-slate-400 font-bold">Coins</p><p className="font-bold">{selectedUser.wallet?.balance || 0}</p></div>
+              <div className="border p-4"><p className="text-xs text-slate-400 font-bold">Date of Birth</p><p className="font-bold">{selectedUser.dob ? format(new Date(selectedUser.dob), 'MMM dd, yyyy') : 'Not set'}</p></div>
+              <div className="border p-4"><p className="text-xs text-slate-400 font-bold">Status</p><p className={`font-bold ${selectedUser.isBlocked ? 'text-red-600' : 'text-emerald-600'}`}>{selectedUser.isBlocked ? 'Blocked' : 'Active'}</p></div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              {[
+                ["Email", selectedUser.email || "Not set"],
+                ["Phone", selectedUser.phone || "Not set"],
+                ["Referral code", selectedUser.referralCode || "Not set"],
+                ["Online", selectedUser.isOnline ? "Yes" : "No"],
+                ["Created", selectedUser.createdAt ? format(new Date(selectedUser.createdAt), 'PPpp') : "Not set"],
+                ["Last seen", selectedUser.lastSeen ? format(new Date(selectedUser.lastSeen), 'PPpp') : "Not set"],
+                ["Pending name", selectedUser.pendingName || "None"],
+                ["Blocked reason", selectedUser.blockedReason || "None"],
+              ].map(([label, value]) => (
+                <div key={label} className="border p-3">
+                  <p className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</p>
+                  <p className="mt-1 font-semibold text-slate-800">{value}</p>
+                </div>
+              ))}
             </div>
 
             {selectedUser.providerProfile && (
-              <div className="rounded-xl border p-4">
+              <div className="border p-4">
                 <h4 className="font-bold mb-2">Provider Profile</h4>
                 <p className="text-sm text-slate-600">Verification: {selectedUser.providerProfile.verification}</p>
                 <p className="text-sm text-slate-600">Skills: {selectedUser.providerProfile.skills?.join(', ') || 'None'}</p>
                 <p className="text-sm text-slate-600">Service area: {selectedUser.providerProfile.serviceArea || 'Not set'}</p>
+                <p className="text-sm text-slate-600">Rate: {selectedUser.providerProfile.rate || 0} FCFA</p>
+                <p className="text-sm text-slate-600">Experience: {selectedUser.providerProfile.experienceLevel || 'Not set'}</p>
+                <p className="text-sm text-slate-600">Bio: {selectedUser.providerProfile.bio || 'Not set'}</p>
+                <p className="text-sm text-slate-600">Birth fields: {[selectedUser.providerProfile.birthDay, selectedUser.providerProfile.birthMonth, selectedUser.providerProfile.birthYear].filter(Boolean).join(' ') || 'Not set'}</p>
+                <p className="text-sm text-slate-600">Documents: {selectedUser.providerProfile.documents?.length || 0}</p>
               </div>
             )}
 
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="border p-4">
+                <h4 className="font-bold mb-3">Recent Transactions</h4>
+                {(selectedUser.wallet?.transactions || []).slice(0, 8).map((tx) => (
+                  <p key={tx.id} className="border-b py-2 text-sm">{tx.type} • {tx.amount} coins • {tx.status}</p>
+                ))}
+              </div>
+              <div className="border p-4">
+                <h4 className="font-bold mb-3">Client Tasks</h4>
+                {(selectedUser.jobsAsClient || []).slice(0, 8).map((job) => (
+                  <p key={job.id} className="border-b py-2 text-sm">{job.title} • {job.status} • {job.budget?.toLocaleString()} XAF</p>
+                ))}
+              </div>
+            </div>
+
             <div className="flex gap-3">
-              <button onClick={() => toggleBlock(selectedUser)} className={`px-4 py-2 rounded-lg text-white font-bold ${selectedUser.isBlocked ? 'bg-emerald-600' : 'bg-red-600'}`}>
+              <button onClick={() => toggleBlock(selectedUser)} className={`px-4 py-2 text-white font-bold ${selectedUser.isBlocked ? 'bg-emerald-600' : 'bg-red-600'}`}>
                 {selectedUser.isBlocked ? 'Restore Account' : 'Block Account'}
               </button>
-              <button onClick={() => window.location.href = `/dashboard/notifications?user=${selectedUser.id}`} className="px-4 py-2 rounded-lg bg-slate-900 text-white font-bold">Message User</button>
+              <button onClick={() => window.location.href = `/dashboard/messages?user=${selectedUser.id}`} className="px-4 py-2 bg-[#0D9488] text-white font-bold">Message User</button>
             </div>
           </div>
         </div>

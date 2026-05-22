@@ -18,6 +18,8 @@ import { toast } from "sonner"
 
 export default function WalletPage() {
   const [transactions, setTransactions] = useState([])
+  const [allTransactions, setAllTransactions] = useState([])
+  const [reportData, setReportData] = useState({ daily: [], weekly: [], monthly: [] })
   const [stats, setStats] = useState({ monthlySales: 0, totalRevenue: 0 })
   const [loading, setLoading] = useState(true)
   const [selectedTx, setSelectedTx] = useState(null)
@@ -28,13 +30,21 @@ export default function WalletPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [txRes, statsRes] = await Promise.all([
+      const [txRes, allTxRes, statsRes, financialRes] = await Promise.all([
         dashboardService.getPendingTransactions(),
-        dashboardService.getStats()
+        dashboardService.getTransactions(),
+        dashboardService.getStats(),
+        dashboardService.getFinancialStats()
       ]);
       setTransactions(txRes.data.data);
+      setAllTransactions(allTxRes.data.data || []);
+      setReportData({
+        daily: financialRes.data.data.daily || [],
+        weekly: financialRes.data.data.weekly || [],
+        monthly: financialRes.data.data.monthly || [],
+      });
       setStats({
-        monthlySales: statsRes.data.data.revenue / 1500, // Assuming 1 coin = 1500 FCFA
+        monthlySales: (financialRes.data.data.monthly || []).at(-1)?.coins || 0,
         totalRevenue: statsRes.data.data.revenue
       });
     } catch (err) {
@@ -48,6 +58,25 @@ export default function WalletPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const exportReport = (period, type) => {
+    const rows = reportData[period] || []
+    if (type === "pdf") {
+      window.print()
+      return
+    }
+    const csv = [
+      "Period,Transactions,Coins,Revenue FCFA",
+      ...rows.map((row) => `${row.period},${row.count},${row.coins},${row.revenue}`)
+    ].join("\n")
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `fixam-${period}-wallet-report.csv`
+    link.click()
+    URL.revokeObjectURL(url)
   }
 
   useEffect(() => {
@@ -108,6 +137,19 @@ export default function WalletPage() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight text-slate-900">Wallet & Coins</h2>
         <p className="text-slate-500">Monitor coin purchases and approve manual payment verifications.</p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3 print:hidden">
+        {["daily", "weekly", "monthly"].map((period) => (
+          <div key={period} className="border bg-white p-4">
+            <p className="text-xs font-black uppercase tracking-widest text-[#0D9488]">{period} report</p>
+            <p className="mt-1 text-sm text-slate-500">{reportData[period]?.length || 0} reporting rows available</p>
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => exportReport(period, "excel")} className="bg-[#0D9488] px-3 py-2 text-xs font-bold text-white">Export Excel</button>
+              <button onClick={() => exportReport(period, "pdf")} className="border px-3 py-2 text-xs font-bold text-slate-700">Print PDF</button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Financial Overview */}
@@ -201,7 +243,7 @@ export default function WalletPage() {
         </div>
 
         <div className="overflow-x-auto">
-          {transactions.length === 0 ? (
+          {allTransactions.length === 0 ? (
             <div className="p-20 text-center text-slate-400">
               <Wallet size={40} className="mx-auto mb-4 opacity-20" />
               <p>No pending purchase requests.</p>
@@ -220,7 +262,7 @@ export default function WalletPage() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {transactions.map((tx) => (
+                {allTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-mono text-sm text-slate-600 truncate max-w-[100px]">{tx.id.slice(-8)}</td>
                     <td className="px-6 py-4 font-semibold text-slate-900">{tx.wallet?.user?.fullName || 'No Name'}</td>
