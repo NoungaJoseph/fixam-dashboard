@@ -57,15 +57,16 @@ export default function OverviewPage() {
       return
     }
     fetchOverview()
-    const id = setInterval(fetchOverview, 15000)
+    const id = setInterval(fetchOverview, 60000)
     return () => clearInterval(id)
   }, [router])
 
   const statCards = [
-    { label: "Total Users", value: stats?.users || 0, icon: Users, trend: "Live", color: "text-blue-600", bg: "bg-blue-100" },
-    { label: "Total Jobs", value: stats?.jobs || 0, icon: Briefcase, trend: "Live", color: "text-blue-600", bg: "bg-blue-100" },
-    { label: "Completed", value: stats?.completed || 0, icon: CheckCircle2, trend: "Success", color: "text-emerald-600", bg: "bg-emerald-100" },
-    { label: "Reports", value: stats?.reports || 0, icon: AlertTriangle, trend: "Attention", color: "text-red-600", bg: "bg-red-100" },
+    { label: "Total Users", value: stats?.totalUsers || 0, icon: Users, trend: "Live", color: "text-blue-600", bg: "bg-blue-100" },
+    { label: "Total Providers", value: stats?.totalProviders || 0, icon: Briefcase, trend: "Live", color: "text-purple-600", bg: "bg-purple-100" },
+    { label: "Total Jobs", value: stats?.totalJobs || 0, icon: Briefcase, trend: "Live", color: "text-blue-600", bg: "bg-blue-100" },
+    { label: "Completed Jobs", value: stats?.completedJobs || 0, icon: CheckCircle2, trend: "Success", color: "text-emerald-600", bg: "bg-emerald-100" },
+    { label: "Open Reports", value: stats?.openReports || 0, icon: AlertTriangle, trend: "Attention", color: "text-red-600", bg: "bg-red-100" },
   ]
 
   // Map real financial data to chart format
@@ -123,7 +124,9 @@ export default function OverviewPage() {
             </div>
             <div className="mt-4">
               <h3 className="text-sm font-medium text-slate-500">{stat.label}</h3>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">
+                {loading ? <span className="inline-block h-8 w-16 bg-slate-200 animate-pulse rounded"></span> : stat.value.toLocaleString()}
+              </p>
             </div>
           </div>
         ))}

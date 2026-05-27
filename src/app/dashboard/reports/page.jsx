@@ -5,21 +5,24 @@ import { AlertTriangle, MessageSquare, Flag, ShieldAlert, CheckCircle, Search, M
 import { dashboardService } from "@/services/api"
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState([])
-  const [feedback, setFeedback] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [showBanner, setShowBanner] = useState(true)
 
-  useEffect(() => {
-    Promise.all([dashboardService.getReports(), dashboardService.getFeedback()])
-      .then(([reportRes, feedbackRes]) => {
+  const fetchReports = () => {
+    dashboardService.getReports()
+      .then((reportRes) => {
         setReports(reportRes.data.data || [])
-        setFeedback(feedbackRes.data.data || [])
         setLoading(false)
       })
       .catch(err => {
         console.error(err)
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    fetchReports()
+    const id = setInterval(fetchReports, 60000)
+    return () => clearInterval(id)
   }, [])
 
   const openDisputes = reports.filter(r => r.status === 'PENDING' || r.status === 'OPEN').length;
@@ -31,15 +34,28 @@ export default function ReportsPage() {
     setReports(prev => prev.map(r => r.id === id ? { ...r, status } : r))
   }
 
-  const updateFeedback = async (id, status) => {
-    await dashboardService.updateFeedbackStatus(id, { status })
-    setFeedback(prev => prev.map(f => f.id === id ? { ...f, status } : f))
-  }
+  const sortedReports = [...reports].sort((a, b) => {
+    const isPendingA = a.status === 'PENDING' || a.status === 'OPEN'
+    const isPendingB = b.status === 'PENDING' || b.status === 'OPEN'
+    if (isPendingA && !isPendingB) return -1
+    if (!isPendingA && isPendingB) return 1
+    return new Date(b.createdAt) - new Date(a.createdAt)
+  })
 
   if (loading) return <div className="p-8 text-slate-500 font-medium animate-pulse">Loading all platform reports...</div>
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {openDisputes > 0 && showBanner && (
+        <div className="bg-amber-100 text-amber-800 px-6 py-4 rounded-xl flex justify-between items-center shadow-sm">
+          <p className="font-bold flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            You have {openDisputes} pending reports requiring attention
+          </p>
+          <button onClick={() => setShowBanner(false)} className="text-amber-800 hover:text-amber-900 font-bold">Dismiss</button>
+        </div>
+      )}
+
       <div>
         <h2 className="text-3xl font-bold tracking-tight text-slate-900">Reports & Disputes</h2>
         <p className="text-slate-500">Manage user complaints, fraud alerts, and resolve marketplace disputes.</p>
@@ -93,8 +109,11 @@ export default function ReportsPage() {
               <p>No platform incidents reported.</p>
             </div>
           ) : (
-            reports.map((report) => (
-              <div key={report.id} className="p-6 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4">
+            sortedReports.map((report) => (
+              <div key={report.id} className={`p-6 hover:bg-slate-50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                (report.status === 'PENDING' || report.status === 'OPEN') ? 'border-l-4 border-l-amber-500 bg-amber-50/30' : 
+                report.status === 'RESOLVED' ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-blue-500'
+              }`}>
                 <div className="flex items-start gap-4">
                   <div className={`mt-1 h-10 w-10 rounded-full flex items-center justify-center bg-red-100 text-red-600`}>
                     <Flag size={20} />
@@ -130,32 +149,6 @@ export default function ReportsPage() {
         </div>
         <div className="p-4 bg-slate-50 text-center border-t">
           <button className="text-sm font-bold text-slate-600 hover:underline">View All Historical Reports</button>
-        </div>
-      </div>
-
-      <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b">
-          <h3 className="font-bold text-slate-800 text-lg">User Feedback</h3>
-          <p className="text-sm text-slate-500">Messages submitted from the mobile app feedback form.</p>
-        </div>
-        <div className="divide-y">
-          {feedback.length === 0 ? (
-            <div className="p-12 text-center text-slate-400">No feedback received yet.</div>
-          ) : feedback.map((item) => (
-            <div key={item.id} className="p-6 flex flex-col md:flex-row md:items-start justify-between gap-4">
-              <div>
-                <h4 className="font-bold text-slate-900">{item.title}</h4>
-                <p className="text-sm text-slate-500 mt-1">From {item.user?.fullName || item.user?.phone || 'Unknown user'} ({item.user?.role || 'USER'})</p>
-                <p className="text-sm text-slate-700 mt-3 max-w-3xl">{item.message}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${item.status === 'RESOLVED' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{item.status}</span>
-                <button onClick={() => updateFeedback(item.id, item.status === 'RESOLVED' ? 'READ' : 'RESOLVED')} className="text-sm font-bold text-blue-600">
-                  {item.status === 'RESOLVED' ? 'Reopen' : 'Resolve'}
-                </button>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </div>

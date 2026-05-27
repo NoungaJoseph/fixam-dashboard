@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { dashboardService } from "@/services/api"
+import { useEffect, useState } from "react"
 import { 
   LayoutDashboard, 
   Users, 
@@ -14,7 +16,8 @@ import {
   Bell, 
   BarChart3, 
   Settings,
-  LogOut
+  LogOut,
+  MessageSquare
 } from "lucide-react"
 
 const menuItems = [
@@ -26,6 +29,7 @@ const menuItems = [
   { icon: Wallet, label: "Wallet & Coins", href: "/dashboard/wallet" },
   { icon: MessagesSquare, label: "Messages", href: "/dashboard/messages" },
   { icon: AlertCircle, label: "Reports & Disputes", href: "/dashboard/reports" },
+  { icon: MessageSquare, label: "Feedback", href: "/dashboard/feedback" },
   { icon: Bell, label: "Notifications", href: "/dashboard/notifications" },
   { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
@@ -33,6 +37,34 @@ const menuItems = [
 
 export function Sidebar({ collapsed = false }) {
   const pathname = usePathname()
+  const [unreadMessages, setUnreadMessages] = useState(0)
+  const [stats, setStats] = useState({})
+
+  useEffect(() => {
+    let active = true
+    const loadData = () => {
+      Promise.all([
+        dashboardService.getUnreadMessageCount().catch(() => ({ data: { data: { totalUnread: 0 } } })),
+        dashboardService.getStats().catch(() => ({ data: { data: {} } }))
+      ]).then(([unreadRes, statsRes]) => {
+        if (active) {
+          setUnreadMessages(unreadRes.data.data?.totalUnread || 0)
+          setStats(statsRes.data.data || {})
+        }
+      })
+    }
+
+    loadData()
+    const interval = setInterval(loadData, 60000)
+    const onRefresh = () => loadData()
+    window.addEventListener("fixam:messages-read", onRefresh)
+
+    return () => {
+      active = false
+      clearInterval(interval)
+      window.removeEventListener("fixam:messages-read", onRefresh)
+    }
+  }, [])
 
   return (
     <div className={`${collapsed ? "w-20" : "w-64"} flex h-full flex-col bg-[#0F172A] text-white border-r border-[#1E293B] transition-all duration-200`}>
@@ -46,7 +78,14 @@ export function Sidebar({ collapsed = false }) {
       </div>
       
       <div className="flex-1 overflow-y-auto py-4 px-4 space-y-1">
-        {menuItems.map((item) => (
+        {menuItems.map((item) => {
+          let badge = 0
+          if (item.label === "Messages") badge = unreadMessages
+          if (item.label === "Task Approval") badge = stats?.pendingTaskApprovals || 0
+          if (item.label === "Reports & Disputes") badge = stats?.openReports || 0
+          if (item.label === "Feedback") badge = stats?.newFeedback || 0
+          
+          return (
           <Link
             key={item.href}
             href={item.href}
@@ -59,8 +98,13 @@ export function Sidebar({ collapsed = false }) {
           >
             <item.icon className="h-5 w-5" />
             {!collapsed && item.label}
+            {!collapsed && badge > 0 && (
+              <span className="ml-auto rounded-full bg-red-600 px-2 py-0.5 text-[10px] font-black text-white">
+                {badge > 99 ? "99+" : badge}
+              </span>
+            )}
           </Link>
-        ))}
+        )})}
       </div>
 
       <div className="p-4 border-t border-slate-800">

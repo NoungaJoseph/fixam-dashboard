@@ -5,8 +5,10 @@ import { Search, Filter, MoreHorizontal, Ban, Eye } from "lucide-react"
 import { format } from "date-fns"
 import { dashboardService } from "@/services/api"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 export default function UsersPage() {
+  const router = useRouter()
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -56,7 +58,7 @@ export default function UsersPage() {
     try {
       const res = await dashboardService.createConversation({ participantId: user.id })
       const conversation = res.data.data
-      window.location.href = `/dashboard/messages?conversation=${conversation.id}`
+      router.push(`/dashboard/messages?conversationId=${conversation.id}`)
     } catch (error) {
       toast.error(error.response?.data?.message || "Could not open conversation")
     }

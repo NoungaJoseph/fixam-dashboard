@@ -1,10 +1,62 @@
 "use client"
 
-import { useState } from "react"
-import { Settings, Shield, Bell, Globe, User, Server, Database, Save } from "lucide-react"
+import { useEffect, useState } from "react"
+import { Settings, Shield, Bell, Globe, User, Server, Database, Save, Loader2 } from "lucide-react"
+import { dashboardService } from "@/services/api"
+import { toast } from "sonner"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general")
+  const [settings, setSettings] = useState({
+    platformName: "",
+    supportEmail: "",
+    serviceFee: 0,
+    defaultLanguage: "English",
+    baseCurrency: "XAF",
+    apiEndpoint: "https://api.fixam.cm/v1",
+    adminSecret: "secret"
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [adminUser, setAdminUser] = useState(null)
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        setAdminUser(JSON.parse(localStorage.getItem('admin_user')))
+      } catch (e) {}
+    }
+
+    dashboardService.getSettings?.()
+      .then(res => {
+        if (res.data.data) {
+          setSettings(res.data.data)
+        }
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error(err)
+        setLoading(false) // Not throwing error if endpoint doesn't exist yet
+      })
+  }, [])
+
+  const handleSave = async () => {
+    try {
+      setSaving(true)
+      await dashboardService.updateSettings(settings)
+      toast.success("Settings saved successfully")
+    } catch (err) {
+      toast.error("Failed to save settings")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const updateSetting = (key, value) => {
+    setSettings(prev => ({ ...prev, [key]: value }))
+  }
+
+  if (loading) return <div className="p-8 text-slate-500 font-medium animate-pulse">Loading platform settings...</div>
 
   return (
     <div className="space-y-8">
@@ -41,9 +93,13 @@ export default function SettingsPage() {
           <div className="bg-white border rounded-2xl p-8 shadow-sm">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-xl font-bold text-slate-900 capitalize">{activeTab} Settings</h3>
-              <button className="flex items-center gap-2 bg-slate-900 text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all">
-                <Save size={16} />
-                Save Changes
+              <button 
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 bg-slate-900 text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-slate-800 transition-all disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                {saving ? "Saving..." : "Save Changes"}
               </button>
             </div>
 
@@ -52,16 +108,16 @@ export default function SettingsPage() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700">Platform Name</label>
-                    <input type="text" defaultValue="Fixam Marketplace" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600" />
+                    <input type="text" value={settings.platformName} onChange={(e) => updateSetting('platformName', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700">Support Email</label>
-                    <input type="email" defaultValue="support@fixam.cm" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600" />
+                    <input type="email" value={settings.supportEmail} onChange={(e) => updateSetting('supportEmail', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Service Fee (%)</label>
-                  <input type="number" defaultValue="10" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600" />
+                  <input type="number" value={settings.serviceFee} onChange={(e) => updateSetting('serviceFee', parseFloat(e.target.value) || 0)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600" />
                   <p className="text-xs text-slate-400">Commission taken from provider earnings per job.</p>
                 </div>
                 <div className="pt-4 border-t space-y-4">
@@ -69,16 +125,16 @@ export default function SettingsPage() {
                   <div className="flex gap-4">
                     <div className="flex-1 space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Default Language</label>
-                      <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600">
-                        <option>English</option>
-                        <option>French</option>
+                      <select value={settings.defaultLanguage} onChange={(e) => updateSetting('defaultLanguage', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600">
+                        <option value="English">English</option>
+                        <option value="French">French</option>
                       </select>
                     </div>
                     <div className="flex-1 space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Base Currency</label>
-                      <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600">
-                        <option>XAF (CFA Franc)</option>
-                        <option>USD ($)</option>
+                      <select value={settings.baseCurrency} onChange={(e) => updateSetting('baseCurrency', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-600">
+                        <option value="XAF">XAF (CFA Franc)</option>
+                        <option value="USD">USD ($)</option>
                       </select>
                     </div>
                   </div>
@@ -109,7 +165,7 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">API Endpoint URL</label>
                   <div className="flex gap-2">
-                    <input type="text" readOnly defaultValue="https://api.fixam.cm/v1" className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 text-sm font-mono" />
+                    <input type="text" value={settings.apiEndpoint} onChange={(e) => updateSetting('apiEndpoint', e.target.value)} className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 text-sm font-mono" />
                     <button className="px-4 py-2 bg-slate-100 border rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-200 transition-colors">Copy</button>
                   </div>
                 </div>
@@ -117,7 +173,7 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-slate-700">Admin Secret Key</label>
                   <div className="flex gap-2">
-                    <input type="password" readOnly defaultValue="••••••••••••••••" className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 text-sm font-mono" />
+                    <input type="password" value={settings.adminSecret} onChange={(e) => updateSetting('adminSecret', e.target.value)} className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 text-sm font-mono" />
                     <button className="px-4 py-2 bg-slate-100 border rounded-xl text-slate-600 font-bold text-sm hover:bg-slate-200 transition-colors">Reveal</button>
                   </div>
                 </div>
@@ -132,12 +188,12 @@ export default function SettingsPage() {
                     <Save size={16} />
                   </button>
                 </div>
-                <h4 className="mt-6 text-xl font-bold text-slate-900">Admin Joseph</h4>
+                <h4 className="mt-6 text-xl font-bold text-slate-900">{adminUser?.fullName || 'Admin User'}</h4>
                 <p className="text-sm text-slate-500">Super Administrator & Platform Owner</p>
                 <div className="mt-8 w-full max-w-sm space-y-4">
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-400 uppercase">Login Email</label>
-                    <p className="text-sm font-bold text-slate-800">admin@fixam.cm</p>
+                    <p className="text-sm font-bold text-slate-800">{adminUser?.email || 'admin@fixam.cm'}</p>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-400 uppercase">Access Level</label>

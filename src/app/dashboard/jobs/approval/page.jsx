@@ -12,6 +12,7 @@ export default function JobApprovalPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [rejectReason, setRejectReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showBanner, setShowBanner] = useState(true)
 
   async function fetchPendingJobs() {
     try {
@@ -26,8 +27,9 @@ export default function JobApprovalPage() {
   }
 
   useEffect(() => {
-    const id = setTimeout(fetchPendingJobs, 0)
-    return () => clearTimeout(id)
+    fetchPendingJobs()
+    const id = setInterval(fetchPendingJobs, 60000)
+    return () => clearInterval(id)
   }, [])
 
   const filteredJobs = jobs.filter(j => 
@@ -43,7 +45,6 @@ export default function JobApprovalPage() {
       await dashboardService.approveJob(jobId)
       setJobs(jobs.filter(j => j.id !== jobId))
       setSelectedJob(null)
-      // Show toast notification
     } catch (err) {
       console.error('Error approving job:', err)
     } finally {
@@ -74,6 +75,16 @@ export default function JobApprovalPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {filteredJobs.length > 0 && showBanner && (
+        <div className="bg-amber-100 text-amber-800 px-6 py-4 rounded-xl flex justify-between items-center shadow-sm">
+          <p className="font-bold flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            You have {filteredJobs.length} pending task approvals requiring attention
+          </p>
+          <button onClick={() => setShowBanner(false)} className="text-amber-800 hover:text-amber-900 font-bold">Dismiss</button>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">Task Approval Queue</h2>
@@ -102,7 +113,7 @@ export default function JobApprovalPage() {
           </div>
         ) : (
           filteredJobs.map((job) => (
-            <div key={job.id} className="bg-white border rounded-2xl p-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:border-slate-300 transition-all">
+            <div key={job.id} className="bg-white border-l-4 border-l-amber-500 border-y border-r rounded-2xl p-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-6 hover:border-slate-300 transition-all">
               <div className="flex-1 space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">

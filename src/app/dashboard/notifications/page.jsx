@@ -11,17 +11,27 @@ export default function NotificationsPage() {
   const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState("")
   const [subject, setSubject] = useState("")
-  const [content, setContent] = useState("")
+  const [history, setHistory] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(true)
+
+  const fetchHistory = () => {
+    dashboardService.getBroadcasts?.()
+      .then(res => {
+        setHistory(res.data.data || [])
+        setLoadingHistory(false)
+      })
+      .catch(() => setLoadingHistory(false))
+  }
 
   useEffect(() => {
     dashboardService.getUsers().then((res) => setUsers(res.data.data || [])).catch(() => {})
+    fetchHistory()
   }, [])
 
   const handleSend = async (e) => {
     e.preventDefault()
     try {
       setSending(true)
-      const roleMap = { providers: "PROVIDER", clients: "CLIENT", all: "ALL", individual: "ALL" }
       await dashboardService.sendAdminMessage({
         subject,
         content,
@@ -32,6 +42,7 @@ export default function NotificationsPage() {
       setSubject("")
       setContent("")
       setSelectedUser("")
+      fetchHistory()
     } catch (error) {
       toast.error(error.response?.data?.message || "Could not send notification")
     } finally {
@@ -142,21 +153,21 @@ export default function NotificationsPage() {
             </h3>
 
             <div className="space-y-4">
-              {[
-                { title: "System Maintenance", target: "All", date: "2 hours ago", status: "Sent" },
-                { title: "Promo: 20% Off Coins", target: "Providers", date: "Yesterday", status: "Sent" },
-                { title: "Welcome to Fixam!", target: "Clients", date: "3 days ago", status: "Sent" },
-              ].map((b, i) => (
-                <div key={i} className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+              {loadingHistory ? (
+                <div className="text-center py-4 text-slate-400 text-sm animate-pulse">Loading history...</div>
+              ) : history.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 text-sm">No recent broadcasts found.</div>
+              ) : history.map((b, i) => (
+                <div key={b.id || i} className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                   <div className="flex justify-between items-start mb-1">
-                    <h4 className="font-bold text-slate-800 text-sm">{b.title}</h4>
+                    <h4 className="font-bold text-slate-800 text-sm">{b.subject}</h4>
                     <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase">
-                      <CheckCircle2 size={10} /> {b.status}
+                      <CheckCircle2 size={10} /> {b.status || "SENT"}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[11px] text-slate-400 font-medium">
-                    <span>To: {b.target}</span>
-                    <span>{b.date}</span>
+                  <div className="flex justify-between text-[11px] text-slate-400 font-medium mt-2">
+                    <span>To: {b.recipientId ? "Individual" : b.recipientRole === "ALL" ? "All Users" : b.recipientRole}</span>
+                    <span>{new Date(b.createdAt).toLocaleString()}</span>
                   </div>
                 </div>
               ))}

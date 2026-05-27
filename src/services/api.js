@@ -60,11 +60,17 @@ export const dashboardService = {
   getPendingJobs: () => api.get('/admin/pending-jobs'),
   approveJob: (id) => api.put(`/admin/jobs/${id}/approve`),
   rejectJob: (id, data) => api.put(`/admin/jobs/${id}/reject`, data),
+  getSettings: () => api.get('/admin/settings'),
+  updateSettings: (data) => api.put('/admin/settings', data),
+  wireCoins: (data) => api.post('/admin/wallet/wire-coins', data),
+  getWireHistory: () => api.get('/admin/wallet/wire-history'),
   getJobs: () => api.get('/jobs/all'),
   getSupportConversations: () => api.get('/admin/support-conversations'),
   getConversations: () => api.get('/chat/conversations'),
   createConversation: (data) => api.post('/chat/conversations', data),
   getChatMessages: (conversationId) => api.get(`/chat/${conversationId}/messages`),
+  markConversationRead: (conversationId) => api.put(`/chat/${conversationId}/read`),
+  getUnreadMessageCount: () => api.get('/chat/unread-count'),
   sendChatMessage: (data) => api.post('/chat/send', data),
 };
 

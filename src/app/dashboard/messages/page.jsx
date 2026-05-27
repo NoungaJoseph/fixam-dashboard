@@ -67,7 +67,7 @@ export default function MessagesPage() {
         if (cancelled) return
         const list = (res.data.data || []).map(normalizeDashboardConversation)
         setConversations(list)
-        const conversationId = searchParams.get("conversation")
+        const conversationId = searchParams.get("conversationId") || searchParams.get("conversation")
         const match = conversationId ? list.find((item) => item.id === conversationId) : null
         if (match || list[0]) setSelected(match || list[0])
       } catch {
@@ -87,6 +87,8 @@ export default function MessagesPage() {
     let cancelled = false
     ;(async () => {
       try {
+        await dashboardService.markConversationRead(selected.id)
+        window.dispatchEvent(new Event("fixam:messages-read"))
         const res = await dashboardService.getChatMessages(selected.id)
         if (!cancelled) setMessages(res.data.data || [])
       } catch {
