@@ -62,6 +62,8 @@ export const dashboardService = {
   rejectJob: (id, data) => api.put(`/admin/jobs/${id}/reject`, data),
   getJobs: () => api.get('/jobs/all'),
   getSupportConversations: () => api.get('/admin/support-conversations'),
+  getConversations: () => api.get('/chat/conversations'),
+  createConversation: (data) => api.post('/chat/conversations', data),
   getChatMessages: (conversationId) => api.get(`/chat/${conversationId}/messages`),
   sendChatMessage: (data) => api.post('/chat/send', data),
 };

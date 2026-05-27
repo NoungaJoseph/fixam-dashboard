@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { Send, Loader2, MessagesSquare, RefreshCcw } from "lucide-react"
 import { dashboardService } from "@/services/api"
 import { toast } from "sonner"
+import { useSocket } from "@/hooks/useSocket"
 
 const getAdminUser = () => {
   if (typeof window === "undefined") return null
@@ -11,6 +13,14 @@ const getAdminUser = () => {
     return JSON.parse(localStorage.getItem("admin_user") || "null")
   } catch {
     return null
+  }
+}
+
+const normalizeDashboardConversation = (conversation) => {
+  const participant = conversation.user || conversation.participants?.[0] || {}
+  return {
+    ...conversation,
+    user: participant,
   }
 }
 
@@ -22,11 +32,14 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [admin] = useState(getAdminUser)
+  const searchParams = useSearchParams()
+  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null
+  const { on, emit } = useSocket(token)
 
   const loadConversations = async () => {
     try {
-      const res = await dashboardService.getSupportConversations()
-      const list = res.data.data || []
+      const res = await dashboardService.getConversations()
+      const list = (res.data.data || []).map(normalizeDashboardConversation)
       setConversations(list)
       if (!selected && list[0]) setSelected(list[0])
     } catch (error) {
@@ -50,11 +63,13 @@ export default function MessagesPage() {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await dashboardService.getSupportConversations()
+        const res = await dashboardService.getConversations()
         if (cancelled) return
-        const list = res.data.data || []
+        const list = (res.data.data || []).map(normalizeDashboardConversation)
         setConversations(list)
-        if (list[0]) setSelected(list[0])
+        const conversationId = searchParams.get("conversation")
+        const match = conversationId ? list.find((item) => item.id === conversationId) : null
+        if (match || list[0]) setSelected(match || list[0])
       } catch {
         if (!cancelled) toast.error("Could not load support conversations")
       } finally {
@@ -64,10 +79,11 @@ export default function MessagesPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [searchParams])
 
   useEffect(() => {
     if (!selected?.id) return
+    emit("join:conversation", selected.id)
     let cancelled = false
     ;(async () => {
       try {
@@ -80,7 +96,17 @@ export default function MessagesPage() {
     return () => {
       cancelled = true
     }
-  }, [selected?.id])
+  }, [selected?.id, emit])
+
+  useEffect(() => {
+    const off = on("message:new", (message) => {
+      if (message.conversationId === selected?.id) {
+        setMessages((current) => current.some((item) => item.id === message.id) ? current : [...current, message])
+      }
+      loadConversations()
+    })
+    return () => off?.()
+  }, [on, selected?.id])
 
   const sendReply = async (event) => {
     event.preventDefault()
@@ -166,7 +192,11 @@ export default function MessagesPage() {
                   return (
                     <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                       <div className={`max-w-[70%] px-4 py-3 text-sm ${mine ? "bg-[#0D9488] text-white" : "bg-slate-100 text-slate-800"}`}>
-                        <p>{message.content}</p>
+                        {message.type === "IMAGE" ? (
+                          <img src={message.content || message.mediaUrl} alt="" className="max-h-64 rounded-lg object-cover" />
+                        ) : (
+                          <p>{message.content}</p>
+                        )}
                         <p className={`mt-2 text-[10px] ${mine ? "text-teal-50" : "text-slate-400"}`}>
                           {new Date(message.createdAt).toLocaleString()}
                         </p>

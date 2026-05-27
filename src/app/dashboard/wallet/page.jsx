@@ -1,133 +1,72 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { 
-  Wallet, 
-  ArrowUpRight, 
-  ArrowDownLeft, 
-  CheckCircle2, 
-  XCircle, 
-  Search, 
-  Filter, 
-  Clock as ClockIcon,
-  Loader2
-} from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Activity, CheckCircle2, Clock, Loader2, Wallet, XCircle } from "lucide-react"
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 import { dashboardService } from "@/services/api"
-import { toast } from "sonner"
+import { useSocket } from "@/hooks/useSocket"
+
+const COLORS = ["#0D9488", "#14B8A6", "#2563EB", "#EF4444"]
 
 export default function WalletPage() {
-  const [transactions, setTransactions] = useState([])
-  const [allTransactions, setAllTransactions] = useState([])
+  const [payments, setPayments] = useState([])
   const [reportData, setReportData] = useState({ daily: [], weekly: [], monthly: [] })
-  const [stats, setStats] = useState({ monthlySales: 0, totalRevenue: 0 })
+  const [widgets, setWidgets] = useState({
+    totalRevenue: 0,
+    activePayments: 0,
+    successfulTransactions: 0,
+    pendingTransactions: 0,
+    failedTransactions: 0,
+  })
+  const [methodStats, setMethodStats] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedTx, setSelectedTx] = useState(null)
-  const [lookupId, setLookupId] = useState("")
-  const [lookupTx, setLookupTx] = useState(null)
-  const [approvingId, setApprovingId] = useState(null)
+  const [reportPeriod, setReportPeriod] = useState("monthly")
+  const [txFilter, setTxFilter] = useState("ALL")
+  const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null
+  const { on } = useSocket(token)
 
   const fetchData = async () => {
-    setLoading(true)
     try {
-      const [txRes, allTxRes, statsRes, financialRes] = await Promise.all([
-        dashboardService.getPendingTransactions(),
-        dashboardService.getTransactions(),
-        dashboardService.getStats(),
-        dashboardService.getFinancialStats()
-      ]);
-      setTransactions(txRes.data.data);
-      setAllTransactions(allTxRes.data.data || []);
+      const financialRes = await dashboardService.getFinancialStats()
+      const data = financialRes.data.data || {}
+      setPayments(data.transactions || [])
       setReportData({
-        daily: financialRes.data.data.daily || [],
-        weekly: financialRes.data.data.weekly || [],
-        monthly: financialRes.data.data.monthly || [],
-      });
-      setStats({
-        monthlySales: (financialRes.data.data.monthly || []).at(-1)?.coins || 0,
-        totalRevenue: statsRes.data.data.revenue
-      });
+        daily: data.daily || [],
+        weekly: data.weekly || [],
+        monthly: data.monthly || [],
+      })
+      setWidgets(data.widgets || {})
+      setMethodStats(data.methodStats || [])
     } catch (err) {
-      console.error(err);
-      if (err.response?.status === 401) {
-        toast.error("Unauthorized. Please login again.");
-        // Optional: window.location.href = "/login"
-      } else {
-        toast.error("Failed to load financial data");
-      }
+      console.error(err)
+      toast.error("Failed to load payment analytics")
     } finally {
       setLoading(false)
     }
   }
 
-  const exportReport = (period, type) => {
-    const rows = reportData[period] || []
-    if (type === "pdf") {
-      window.print()
-      return
-    }
-    const csv = [
-      "Period,Transactions,Coins,Revenue FCFA",
-      ...rows.map((row) => `${row.period},${row.count},${row.coins},${row.revenue}`)
-    ].join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `fixam-${period}-wallet-report.csv`
-    link.click()
-    URL.revokeObjectURL(url)
-  }
-
   useEffect(() => {
-    const id = setTimeout(fetchData, 0)
-    return () => clearTimeout(id)
+    fetchData()
   }, [])
 
-  const handleApprove = async (id, status) => {
-    if (approvingId) return
+  useEffect(() => {
+    const off = on("admin:payment:update", () => fetchData())
+    return () => off?.()
+  }, [on])
 
-    try {
-      setApprovingId(id)
-      await dashboardService.approveTransaction({ transactionId: id, status });
-      toast.success(`Transaction ${status === 'SUCCESS' ? 'Approved' : 'Rejected'}`);
-      setSelectedTx(null);
-      setLookupTx((current) => current?.id === id ? null : current);
-      fetchData();
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Action failed");
-    } finally {
-      setApprovingId(null)
-    }
-  }
-
-  const handleGenerateLookup = () => {
-    const term = lookupId.trim().toLowerCase()
-    if (!term) {
-      toast.error("Enter a transaction ID first")
-      return
-    }
-
-    const found = transactions.find((tx) =>
-      tx.id.toLowerCase().includes(term) ||
-      tx.reference?.toLowerCase().includes(term)
-    )
-
-    if (!found) {
-      setLookupTx(null)
-      toast.error("No pending transaction found for that ID")
-      return
-    }
-
-    setLookupTx(found)
-    setSelectedTx(found)
-  }
+  const successVsFailed = useMemo(() => [
+    { name: "Successful", value: widgets.successfulTransactions || 0 },
+    { name: "Pending", value: widgets.pendingTransactions || 0 },
+    { name: "Failed", value: widgets.failedTransactions || 0 },
+  ], [widgets])
 
   if (loading) return (
     <div className="flex h-[60vh] items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-        <p className="text-slate-500 font-medium">Loading financial records...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-[#0D9488]" />
+        <p className="font-medium text-slate-500">Loading automated payment analytics...</p>
       </div>
     </div>
   )
@@ -135,231 +74,164 @@ export default function WalletPage() {
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Wallet & Coins</h2>
-        <p className="text-slate-500">Monitor coin purchases and approve manual payment verifications.</p>
+        <h2 className="text-3xl font-bold tracking-tight text-slate-900">Payment Analytics</h2>
+        <p className="text-slate-500">Automatic MTN MoMo and Orange Money transactions, revenue, and live payment status.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3 print:hidden">
-        {["daily", "weekly", "monthly"].map((period) => (
-          <div key={period} className="border bg-white p-4">
-            <p className="text-xs font-black uppercase tracking-widest text-[#0D9488]">{period} report</p>
-            <p className="mt-1 text-sm text-slate-500">{reportData[period]?.length || 0} reporting rows available</p>
-            <div className="mt-3 flex gap-2">
-              <button onClick={() => exportReport(period, "excel")} className="bg-[#0D9488] px-3 py-2 text-xs font-bold text-white">Export Excel</button>
-              <button onClick={() => exportReport(period, "pdf")} className="border px-3 py-2 text-xs font-bold text-slate-700">Print PDF</button>
-            </div>
-          </div>
-        ))}
+      <div className="grid gap-4 md:grid-cols-5">
+        <Metric title="Total revenue" value={formatCurrency(widgets.totalRevenue || 0)} icon={Wallet} tone="teal" />
+        <Metric title="Active payments" value={widgets.activePayments || 0} icon={Activity} tone="blue" />
+        <Metric title="Successful" value={widgets.successfulTransactions || 0} icon={CheckCircle2} tone="emerald" />
+        <Metric title="Pending" value={widgets.pendingTransactions || 0} icon={Clock} tone="amber" />
+        <Metric title="Failed" value={widgets.failedTransactions || 0} icon={XCircle} tone="red" />
       </div>
 
-      {/* Financial Overview */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-xl relative overflow-hidden">
-          <div className="relative z-10">
-            <p className="text-slate-400 text-sm font-medium">Pending Approvals</p>
-            <h3 className="text-3xl font-bold mt-2">{formatCurrency(transactions.reduce((acc, curr) => acc + curr.amount, 0))}</h3>
-            <div className="mt-4 flex items-center gap-2 text-blue-500 text-xs font-bold uppercase tracking-wider">
-              <ClockIcon size={14} />
-              {transactions.length} Transactions Waiting
+      <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between">
+            <h3 className="font-bold text-slate-900">Revenue</h3>
+            <div className="flex gap-2">
+              {["daily", "weekly", "monthly"].map(p => (
+                <button
+                  key={p}
+                  onClick={() => setReportPeriod(p)}
+                  className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-widest ${reportPeriod === p ? "bg-[#0D9488]/10 text-[#0D9488]" : "text-slate-400 hover:bg-slate-50"}`}
+                >
+                  {p}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="absolute right-[-20px] bottom-[-20px] text-slate-800 opacity-20">
-            <Wallet size={120} />
-          </div>
-        </div>
-        
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <p className="text-slate-500 text-sm font-medium">Monthly Coin Sales</p>
-          <h3 className="text-3xl font-bold mt-2 text-slate-900">{Math.floor(stats.monthlySales)} <span className="text-sm font-normal text-slate-400">Coins</span></h3>
-          <div className="mt-4 flex items-center gap-2 text-emerald-600 text-xs font-bold uppercase tracking-wider">
-            <ArrowUpRight size={14} />
-            Realtime data
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={reportData[reportPeriod]}>
+                <defs>
+                  <linearGradient id="revenue" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="5%" stopColor="#0D9488" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#0D9488" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis dataKey="period" stroke="#64748B" fontSize={12} />
+                <YAxis stroke="#64748B" fontSize={12} />
+                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Area type="monotone" dataKey="revenue" stroke="#0D9488" strokeWidth={3} fill="url(#revenue)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <p className="text-slate-500 text-sm font-medium">Total Platform Revenue</p>
-          <h3 className="text-3xl font-bold mt-2 text-slate-900">{formatCurrency(stats.totalRevenue)}</h3>
-          <div className="mt-4 flex items-center gap-2 text-emerald-600 text-xs font-bold uppercase tracking-wider">
-            <ArrowUpRight size={14} />
-            Verified growth
+        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+          <h3 className="mb-5 font-bold text-slate-900">Payment Method Statistics</h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={methodStats}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis dataKey="method" stroke="#64748B" fontSize={11} />
+                <YAxis stroke="#64748B" fontSize={12} />
+                <Tooltip formatter={(value, name) => name === "revenue" ? formatCurrency(value) : value} />
+                <Bar dataKey="revenue" radius={[6, 6, 0, 0]}>
+                  {methodStats.map((_, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Transactions Table */}
-      <div className="bg-white border rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b flex items-center justify-between flex-wrap gap-4">
-          <h3 className="font-bold text-slate-800">Transaction History</h3>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2 bg-slate-100 rounded-lg px-3 py-2 border">
-              <Search className="h-4 w-4 text-slate-400" />
-              <input type="text" placeholder="Search ID or User..." className="bg-transparent text-sm outline-none" />
-            </div>
-            <button className="p-2 border rounded-lg hover:bg-slate-50 text-slate-600"><Filter size={20}/></button>
-          </div>
-        </div>
-
-        <div className="border-b bg-blue-50/60 p-6">
-          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-            <div>
-              <p className="text-xs font-black uppercase tracking-widest text-blue-700">Credit coins by transaction ID</p>
-              <p className="mt-1 text-sm text-slate-600">
-                Enter the transaction ID from the app receipt, click Generate, review the requested coins and receipt, then confirm.
-              </p>
-              <input
-                value={lookupId}
-                onChange={(e) => setLookupId(e.target.value)}
-                placeholder="Paste transaction ID or PAY reference"
-                className="mt-3 h-11 w-full rounded-xl border bg-white px-4 text-sm font-mono outline-none focus:border-blue-500"
-              />
-            </div>
-            <button
-              onClick={handleGenerateLookup}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-6 text-sm font-bold text-white hover:bg-blue-700"
-            >
-              Generate
-            </button>
-          </div>
-          {lookupTx && (
-            <div className="mt-4 rounded-xl border border-blue-200 bg-white p-4 text-sm">
-              <div className="grid gap-3 md:grid-cols-4">
-                <div><p className="text-slate-400 font-bold">User</p><p className="font-semibold">{lookupTx.wallet?.user?.fullName || lookupTx.payerName || 'Unknown'}</p></div>
-                <div><p className="text-slate-400 font-bold">Requested Coins</p><p className="font-black">{lookupTx.amount}</p></div>
-                <div><p className="text-slate-400 font-bold">Paid</p><p className="font-semibold">{lookupTx.paidPrice || 'Manual transfer'}</p></div>
-                <div className="flex items-end">
-                  <button
-                    onClick={() => handleApprove(lookupTx.id, 'SUCCESS')}
-                    disabled={approvingId === lookupTx.id}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 font-bold text-white hover:bg-emerald-700"
-                  >
-                    {approvingId === lookupTx.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                    Confirm Credit
-                  </button>
+      <div className="grid gap-6 xl:grid-cols-[1fr_1.5fr]">
+        <div className="rounded-2xl border bg-white p-6 shadow-sm">
+          <h3 className="mb-5 font-bold text-slate-900">Successful vs Failed Payments</h3>
+          <div className="space-y-4">
+            {successVsFailed.map((item, index) => (
+              <div key={item.name}>
+                <div className="mb-2 flex justify-between text-sm">
+                  <span className="font-semibold text-slate-700">{item.name}</span>
+                  <span className="font-black text-slate-900">{item.value}</span>
+                </div>
+                <div className="h-2 rounded-full bg-slate-100">
+                  <div className="h-2 rounded-full" style={{ width: `${Math.min(100, item.value * 8)}%`, backgroundColor: COLORS[index] }} />
                 </div>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          {allTransactions.length === 0 ? (
-            <div className="p-20 text-center text-slate-400">
-              <Wallet size={40} className="mx-auto mb-4 opacity-20" />
-              <p>No pending purchase requests.</p>
+        <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+          <div className="border-b p-6 flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-slate-900">Live Transactions Feed</h3>
+              <p className="text-sm text-slate-500">The list updates when payment webhooks credit wallets.</p>
             </div>
-          ) : (
+            <div className="flex gap-2">
+              {["ALL", "SUCCESS", "PENDING", "FAILED"].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setTxFilter(s)}
+                  className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-widest ${txFilter === s ? "bg-slate-800 text-white" : "text-slate-500 hover:bg-slate-100"}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 border-b">
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Transaction ID</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">User</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Type</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Amount</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Coins</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Status</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Actions</th>
+                <tr className="border-b bg-slate-50">
+                  <th className="px-5 py-3 text-xs font-bold uppercase text-slate-500">Customer</th>
+                  <th className="px-5 py-3 text-xs font-bold uppercase text-slate-500">Method</th>
+                  <th className="px-5 py-3 text-xs font-bold uppercase text-slate-500">Amount</th>
+                  <th className="px-5 py-3 text-xs font-bold uppercase text-slate-500">Coins</th>
+                  <th className="px-5 py-3 text-xs font-bold uppercase text-slate-500">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {allTransactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-mono text-sm text-slate-600 truncate max-w-[100px]">{tx.id.slice(-8)}</td>
-                    <td className="px-6 py-4 font-semibold text-slate-900">{tx.wallet?.user?.fullName || 'No Name'}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2 py-1 rounded ${
-                        tx.type === 'PURCHASE' ? 'bg-blue-100 text-blue-700' : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {tx.type === 'PURCHASE' ? <ArrowDownLeft size={12}/> : <ArrowUpRight size={12}/>}
-                        {tx.type}
-                      </span>
+                {payments.slice().reverse().filter(p => txFilter === "ALL" || p.status === txFilter).slice(0, 20).map((payment) => (
+                  <tr key={payment.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-4">
+                      <p className="font-semibold text-slate-900">{payment.user?.fullName || payment.user?.phone || "Customer"}</p>
+                      <p className="text-xs text-slate-500">{payment.phoneNumber}</p>
                     </td>
-                    <td className="px-6 py-4 font-bold text-slate-900">{tx.paidPrice || tx.description?.match(/(\d[\d,.\s]*\s*FCFA)/)?.[1] || 'Manual'}</td>
-                    <td className="px-6 py-4 text-center font-black text-slate-700">{Math.abs(tx.amount)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                        tx.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700' : 
-                        tx.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {tx.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {tx.status === 'PENDING' ? (
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => handleApprove(tx.id, 'SUCCESS')}
-                            disabled={approvingId === tx.id}
-                            className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200" 
-                            title="Approve"
-                          >
-                            {approvingId === tx.id ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18}/>}
-                          </button>
-                          <button 
-                            onClick={() => handleApprove(tx.id, 'FAILED')}
-                            disabled={approvingId === tx.id}
-                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" 
-                            title="Reject"
-                          >
-                            <XCircle size={18}/>
-                          </button>
-                        </div>
-                      ) : (
-                        <button onClick={() => setSelectedTx(tx)} className="text-sm font-bold text-blue-600 hover:underline">View Details</button>
-                      )}
-                      {tx.status === 'PENDING' && (
-                        <button onClick={() => setSelectedTx(tx)} className="ml-3 text-sm font-bold text-blue-600 hover:underline">Details</button>
-                      )}
-                    </td>
+                    <td className="px-5 py-4 text-sm font-bold text-slate-700">{payment.paymentMethod?.replace("_", " ")}</td>
+                    <td className="px-5 py-4 font-black text-slate-900">{formatCurrency(payment.amount)}</td>
+                    <td className="px-5 py-4 font-black text-[#0D9488]">{payment.coins}</td>
+                    <td className="px-5 py-4"><StatusPill status={payment.status} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
-        </div>
-      </div>
-
-      {selectedTx && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-slate-900">Payment Request Details</h3>
-                <p className="text-sm text-slate-500 font-mono">{selectedTx.reference || selectedTx.id}</p>
-              </div>
-              <button onClick={() => setSelectedTx(null)} className="px-3 py-1 border rounded-lg text-sm">Close</button>
-            </div>
-            <div className="grid md:grid-cols-2 gap-4 text-sm">
-              <div><p className="text-slate-400 font-bold">Transaction ID</p><p className="font-mono break-all">{selectedTx.id}</p></div>
-              <div><p className="text-slate-400 font-bold">Payment Reference</p><p className="font-mono break-all">{selectedTx.reference || 'N/A'}</p></div>
-              <div><p className="text-slate-400 font-bold">User</p><p>{selectedTx.wallet?.user?.fullName || selectedTx.payerName || 'Unknown'}</p></div>
-              <div><p className="text-slate-400 font-bold">Phone</p><p>{selectedTx.payerPhone || selectedTx.wallet?.user?.phone || 'N/A'}</p></div>
-              <div><p className="text-slate-400 font-bold">Email</p><p>{selectedTx.payerEmail || selectedTx.wallet?.user?.email || 'N/A'}</p></div>
-              <div><p className="text-slate-400 font-bold">Coins</p><p>{selectedTx.amount}</p></div>
-              <div><p className="text-slate-400 font-bold">Amount paid</p><p>{selectedTx.paidPrice || 'Manual transfer'}</p></div>
-              <div><p className="text-slate-400 font-bold">Status</p><p>{selectedTx.status}</p></div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              {selectedTx.receiptUrl && (
-                <a href={`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, '') || 'http://192.168.1.185:5000'}${selectedTx.receiptUrl}`} target="_blank" className="inline-flex px-4 py-2 rounded-lg bg-slate-900 text-white font-bold">
-                  Open Receipt
-                </a>
-              )}
-              {selectedTx.status === 'PENDING' && (
-                <>
-                  <button disabled={approvingId === selectedTx.id} onClick={() => handleApprove(selectedTx.id, 'SUCCESS')} className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white font-bold disabled:opacity-60">
-                    {approvingId === selectedTx.id && <Loader2 size={16} className="animate-spin" />}
-                    Confirm Credit {selectedTx.amount} Coins
-                  </button>
-                  <button disabled={approvingId === selectedTx.id} onClick={() => handleApprove(selectedTx.id, 'FAILED')} className="inline-flex px-4 py-2 rounded-lg bg-red-100 text-red-700 font-bold disabled:opacity-60">
-                    Reject
-                  </button>
-                </>
-              )}
-            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
+}
+
+function Metric({ title, value, icon: Icon, tone }) {
+  const tones = {
+    teal: "bg-[#0D9488]/10 text-[#0D9488]",
+    blue: "bg-[#2563EB]/10 text-[#2563EB]",
+    emerald: "bg-emerald-100 text-emerald-700",
+    amber: "bg-amber-100 text-amber-700",
+    red: "bg-red-100 text-red-700",
+  }
+  return (
+    <div className="rounded-2xl border bg-white p-5 shadow-sm">
+      <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${tones[tone]}`}>
+        <Icon size={20} />
+      </div>
+      <p className="text-xs font-black uppercase tracking-widest text-slate-400">{title}</p>
+      <p className="mt-2 text-2xl font-black text-slate-900">{value}</p>
+    </div>
+  )
+}
+
+function StatusPill({ status }) {
+  const classes = status === "SUCCESS"
+    ? "bg-emerald-100 text-emerald-700"
+    : status === "FAILED"
+      ? "bg-red-100 text-red-700"
+      : "bg-amber-100 text-amber-700"
+  return <span className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${classes}`}>{status}</span>
 }

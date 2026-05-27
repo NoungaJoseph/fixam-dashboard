@@ -52,6 +52,16 @@ export default function UsersPage() {
     }
   }
 
+  const messageUser = async (user) => {
+    try {
+      const res = await dashboardService.createConversation({ participantId: user.id })
+      const conversation = res.data.data
+      window.location.href = `/dashboard/messages?conversation=${conversation.id}`
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not open conversation")
+    }
+  }
+
   if (loading) return <div className="p-8 text-slate-500 font-medium">Loading users from marketplace...</div>
 
   return (
@@ -220,7 +230,7 @@ export default function UsersPage() {
               <button onClick={() => toggleBlock(selectedUser)} className={`px-4 py-2 text-white font-bold ${selectedUser.isBlocked ? 'bg-emerald-600' : 'bg-red-600'}`}>
                 {selectedUser.isBlocked ? 'Restore Account' : 'Block Account'}
               </button>
-              <button onClick={() => window.location.href = `/dashboard/messages?user=${selectedUser.id}`} className="px-4 py-2 bg-[#0D9488] text-white font-bold">Message User</button>
+              <button onClick={() => messageUser(selectedUser)} className="px-4 py-2 bg-[#0D9488] text-white font-bold">Message User</button>
             </div>
           </div>
         </div>
