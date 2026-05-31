@@ -62,6 +62,7 @@ export const dashboardService = {
   rejectJob: (id, data) => api.put(`/admin/jobs/${id}/reject`, data),
   getSettings: () => api.get('/admin/settings'),
   updateSettings: (data) => api.put('/admin/settings', data),
+  getWalletStats: () => api.get('/admin/wallet/stats'),
   wireCoins: (data) => api.post('/admin/wallet/wire-coins', data),
   getWireHistory: () => api.get('/admin/wallet/wire-history'),
   getJobs: () => api.get('/jobs/all'),
