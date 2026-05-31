@@ -42,6 +42,7 @@ api.interceptors.request.use((config) => {
 
 export const dashboardService = {
   getStats: () => api.get('/admin/stats'),
+  getAnalytics: () => api.get('/admin/analytics'),
   getFinancialStats: () => api.get('/admin/financial-stats'),
   getBroadcasts: () => api.get('/admin/broadcasts'),
   getUsers: () => api.get('/admin/users'),
