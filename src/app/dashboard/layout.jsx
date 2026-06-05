@@ -5,14 +5,25 @@ import { Bell, Search, User, Globe, LogOut, PanelLeftClose, PanelLeftOpen } from
 import { useSocket } from "@/hooks/useSocket"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { dashboardService } from "@/services/api"
 
 export default function DashboardLayout({ children }) {
   const [token] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMaintenance, setIsMaintenance] = useState(false)
 
   const { isConnected, on } = useSocket(token)
 
   useEffect(() => {
+    // Check maintenance mode on load
+    dashboardService.getSettings?.()
+      .then(res => {
+        if (res.data?.data?.maintenanceEnabled) {
+          setIsMaintenance(true)
+        }
+      })
+      .catch(() => {})
+
     if (isConnected) {
       console.log("Realtime Dashboard Connected")
     }
@@ -36,8 +47,14 @@ export default function DashboardLayout({ children }) {
       
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b border-[#E2E8F0] bg-white px-8">
-          <div className="flex items-center gap-4">
+        <header className="flex flex-col border-b border-[#E2E8F0] bg-white">
+          {isMaintenance && (
+            <div className="bg-rose-600 text-white text-xs font-bold text-center py-1.5 px-4 animate-pulse">
+              ⚠️ MAINTENANCE MODE IS ACTIVE — Users cannot access the app
+            </div>
+          )}
+          <div className="flex h-16 items-center justify-between px-8">
+            <div className="flex items-center gap-4">
             <button onClick={() => setSidebarCollapsed((value) => !value)} className="p-2 text-slate-500 hover:bg-[#ECFDF5] hover:text-[#0D9488]">
               {sidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
             </button>

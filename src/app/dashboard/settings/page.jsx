@@ -139,6 +139,36 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+
+                <div className="pt-4 border-t space-y-4">
+                  <h4 className="font-bold text-slate-800">System State</h4>
+                  <div className="p-6 bg-rose-50 border border-rose-100 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold text-rose-900">Maintenance Mode</h4>
+                        <p className="text-xs text-rose-700 mt-1">If enabled, the app will show a maintenance screen and reject all normal traffic.</p>
+                      </div>
+                      <button
+                        onClick={() => updateSetting('maintenanceEnabled', !settings.maintenanceEnabled)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${settings.maintenanceEnabled ? 'bg-rose-600' : 'bg-slate-300'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${settings.maintenanceEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    {settings.maintenanceEnabled && (
+                      <div className="space-y-2 pt-2">
+                        <label className="text-xs font-bold text-rose-800 uppercase tracking-wider">Maintenance Message</label>
+                        <input 
+                          type="text" 
+                          value={settings.maintenanceMessage || ''} 
+                          onChange={(e) => updateSetting('maintenanceMessage', e.target.value)} 
+                          className="w-full bg-white border border-rose-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-rose-500 text-rose-900" 
+                          placeholder="We are improving Fixam for you. Back soon!"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
