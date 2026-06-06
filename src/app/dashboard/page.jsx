@@ -63,8 +63,8 @@ export default function OverviewPage() {
     { label: "Total Jobs", value: stats?.totalJobs || 0, icon: Briefcase, color: "text-slate-700", bg: "bg-slate-100" },
     { label: "Active Jobs", value: stats?.activeJobs || 0, icon: TrendingUp, color: "text-cyan-700", bg: "bg-cyan-100" },
     { label: "Completed Jobs", value: stats?.completedJobs || 0, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-100" },
-    { label: "Pending Approvals", value: stats?.pendingApprovals || 0, icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-100" },
-    { label: "Open Reports", value: stats?.openReports || 0, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-100" },
+    { label: "Monthly Revenue", value: formatCurrency(stats?.monthlyRevenue || 0), icon: Wallet, color: "text-amber-600", bg: "bg-amber-100" },
+    { label: "Monthly Coins", value: stats?.monthlyCoins || 0, icon: TrendingUp, color: "text-blue-600", bg: "bg-blue-100" },
     { label: "Total Revenue", value: formatCurrency(stats?.totalRevenue || 0), icon: Wallet, color: "text-teal-700", bg: "bg-teal-100" },
   ]
 

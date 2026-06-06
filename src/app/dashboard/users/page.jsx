@@ -58,6 +58,7 @@ export default function UsersPage() {
     try {
       const res = await dashboardService.createConversation({ participantId: user.id })
       const conversation = res.data.data
+      setSelectedUser(null)
       router.push(`/dashboard/messages?conversationId=${conversation.id}`)
     } catch (error) {
       toast.error(error.response?.data?.message || "Could not open conversation")

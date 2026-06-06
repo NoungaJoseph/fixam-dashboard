@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Settings, Shield, Bell, Globe, User, Server, Database, Save, Loader2 } from "lucide-react"
+import { useEffect, useState, useRef } from "react"
+import { Settings, Shield, Bell, Globe, User, Server, Database, Save, Loader2, Camera } from "lucide-react"
 import { dashboardService } from "@/services/api"
 import { toast } from "sonner"
+import Image from "next/image"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general")
@@ -19,6 +20,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [adminUser, setAdminUser] = useState(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef(null)
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -54,6 +57,32 @@ export default function SettingsPage() {
 
   const updateSetting = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      setUploadingAvatar(true)
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const uploadRes = await dashboardService.uploadProfileImage(formData)
+      const avatarUrl = uploadRes.data.url
+
+      await dashboardService.updateProfile({ avatar: avatarUrl })
+      
+      const updatedUser = { ...adminUser, avatar: avatarUrl }
+      setAdminUser(updatedUser)
+      localStorage.setItem('admin_user', JSON.stringify(updatedUser))
+      toast.success("Profile image updated successfully")
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to upload image")
+    } finally {
+      setUploadingAvatar(false)
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
   }
 
   if (loading) return <div className="p-8 text-slate-500 font-medium animate-pulse">Loading platform settings...</div>
@@ -212,10 +241,19 @@ export default function SettingsPage() {
 
             {activeTab === "profile" && (
               <div className="flex flex-col items-center py-8">
-                <div className="h-32 w-32 rounded-full bg-slate-100 border-4 border-white shadow-xl flex items-center justify-center text-slate-300 relative">
-                  <User size={64} />
-                  <button className="absolute bottom-0 right-0 h-10 w-10 bg-blue-600 rounded-full border-4 border-white text-white flex items-center justify-center hover:bg-blue-600 transition-colors">
-                    <Save size={16} />
+                <div className="h-32 w-32 rounded-full bg-slate-100 border-4 border-white shadow-xl flex items-center justify-center text-slate-300 relative overflow-hidden group">
+                  {adminUser?.avatar ? (
+                    <img src={adminUser.avatar} alt="Profile" className="h-full w-full object-cover" />
+                  ) : (
+                    <User size={64} />
+                  )}
+                  <input type="file" ref={fileInputRef} onChange={handleAvatarUpload} className="hidden" accept="image/*" />
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                  >
+                    {uploadingAvatar ? <Loader2 className="animate-spin" size={24} /> : <Camera size={24} />}
                   </button>
                 </div>
                 <h4 className="mt-6 text-xl font-bold text-slate-900">{adminUser?.fullName || 'Admin User'}</h4>
