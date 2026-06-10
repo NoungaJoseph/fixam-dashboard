@@ -102,6 +102,7 @@ export default function DashboardLayout({ children }) {
               </button>
             </div>
           </div>
+        </div>
         </header>
 
         {/* Content Area */}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { CheckCircle2, Clock, Loader2, Plus, Search, Wallet, XCircle } from "lucide-react"
+import { CheckCircle2, Clock, Loader2, Plus, Search, Wallet, XCircle, TrendingUp } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
@@ -75,6 +75,12 @@ export default function WalletPage() {
     }))
   }, [stats, period])
 
+  const revenueThisMonth = useMemo(() => {
+    const monthlyData = stats.monthly || []
+    if (monthlyData.length === 0) return 0
+    return monthlyData[monthlyData.length - 1].revenueFCFA || 0
+  }, [stats.monthly])
+
   const filteredUsers = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase()
     if (!query) return []
@@ -126,7 +132,7 @@ export default function WalletPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Metric title="Total Revenue" value={formatCurrency(overview.totalRevenueFCFA || 0)} icon={Wallet} tone="teal" />
         <Metric title="Total Coins Issued" value={(overview.totalCoinsIssued || 0).toLocaleString()} icon={Plus} tone="blue" />
-        <Metric title="Total Transactions" value={(overview.totalTransactions || 0).toLocaleString()} icon={Clock} tone="amber" />
+        <Metric title="Revenue This Month" value={formatCurrency(revenueThisMonth)} icon={TrendingUp} tone="emerald" />
         <Metric title="Success Rate" value={`${successRate}%`} icon={CheckCircle2} tone="emerald" />
       </div>
 

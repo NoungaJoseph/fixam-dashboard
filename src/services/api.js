@@ -4,7 +4,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.185:50
 export const SOCKET_URL = API_BASE_URL.replace(/\/api\/?$/, '');
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000, // 10 seconds
+  timeout: 30000, // 30 seconds
 });
 
 // Add a request interceptor for logging
@@ -69,8 +69,9 @@ export const dashboardService = {
   wireCoins: (data) => api.post('/admin/wallet/wire-coins', data),
   getWireHistory: () => api.get('/admin/wallet/wire-history'),
   getJobs: () => api.get('/jobs/all'),
-  getSupportConversations: () => api.get('/admin/support-conversations'),
-  getConversations: () => api.get('/chat/conversations'),
+  getSupportConversations: () => api.get('/admin/support-conversations', { params: { _t: Date.now() } }),
+  getConversations: () => api.get('/chat/conversations', { params: { _t: Date.now() } }),
+  getConversationById: (id) => api.get(`/chat/conversations/${id}`),
   createConversation: (data) => api.post('/chat/conversations', data),
   getChatMessages: (conversationId) => api.get(`/chat/${conversationId}/messages`),
   markConversationRead: (conversationId) => api.put(`/chat/${conversationId}/read`),

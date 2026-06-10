@@ -39,7 +39,20 @@ export default function MessagesPage() {
   const loadConversations = async () => {
     try {
       const res = await dashboardService.getConversations()
-      const list = (res.data.data || []).map(normalizeDashboardConversation)
+      let list = (res.data.data || []).map(normalizeDashboardConversation)
+      
+      const urlConvId = searchParams?.get("conversationId") || searchParams?.get("conversation")
+      if (urlConvId && !list.find(c => c.id === urlConvId)) {
+        try {
+          const singleRes = await dashboardService.getConversationById(urlConvId)
+          if (singleRes.data?.data) {
+            list = [normalizeDashboardConversation(singleRes.data.data), ...list]
+          }
+        } catch (e) {
+          console.error("Could not load specific conversation", e)
+        }
+      }
+
       setConversations(list)
       if (!selected && list[0]) setSelected(list[0])
     } catch (error) {
@@ -65,9 +78,22 @@ export default function MessagesPage() {
       try {
         const res = await dashboardService.getConversations()
         if (cancelled) return
-        const list = (res.data.data || []).map(normalizeDashboardConversation)
-        setConversations(list)
+        let list = (res.data.data || []).map(normalizeDashboardConversation)
         const conversationId = searchParams.get("conversationId") || searchParams.get("conversation")
+        
+        if (conversationId && !list.find(item => item.id === conversationId)) {
+          try {
+            const singleRes = await dashboardService.getConversationById(conversationId)
+            if (singleRes.data?.data && !cancelled) {
+              list = [normalizeDashboardConversation(singleRes.data.data), ...list]
+            }
+          } catch (e) {
+            console.error("Could not load specific conversation", e)
+          }
+        }
+
+        if (cancelled) return
+        setConversations(list)
         const match = conversationId ? list.find((item) => item.id === conversationId) : null
         if (match || list[0]) setSelected(match || list[0])
       } catch {
