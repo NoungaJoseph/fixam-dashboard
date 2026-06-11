@@ -17,7 +17,8 @@ import {
   BarChart3, 
   Settings,
   LogOut,
-  MessageSquare
+  MessageSquare,
+  Mail
 } from "lucide-react"
 
 const menuItems = [
@@ -28,6 +29,7 @@ const menuItems = [
   { icon: AlertCircle, label: "Task Approval", href: "/dashboard/jobs/approval" },
   { icon: Wallet, label: "Wallet & Coins", href: "/dashboard/wallet" },
   { icon: MessagesSquare, label: "Messages", href: "/dashboard/messages" },
+  { icon: Mail, label: "Broadcasts", href: "/dashboard/broadcasts" },
   { icon: AlertCircle, label: "Reports & Disputes", href: "/dashboard/reports" },
   { icon: MessageSquare, label: "Feedback", href: "/dashboard/feedback" },
   { icon: Bell, label: "Notifications", href: "/dashboard/notifications" },
