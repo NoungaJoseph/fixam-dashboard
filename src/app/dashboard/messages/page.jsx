@@ -147,7 +147,10 @@ export default function MessagesPage() {
         content: input.trim(),
         type: "TEXT",
       })
-      setMessages((current) => [...current, res.data.data])
+      setMessages((current) => {
+        if (current.some(item => item.id === res.data.data.id)) return current;
+        return [...current, res.data.data];
+      })
       setInput("")
       loadConversations()
     } catch {
@@ -215,7 +218,7 @@ export default function MessagesPage() {
                 <h3 className="text-xl font-bold text-slate-900">{selected.user?.fullName || "Fixam User"}</h3>
               </div>
               <div className="flex-1 space-y-4 overflow-y-auto bg-white p-5">
-                {messages.map((message) => {
+                {Array.from(new Map(messages.map(m => [m.id, m])).values()).map((message) => {
                   const mine = message.senderId === admin?.id
                   return (
                     <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>

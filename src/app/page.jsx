@@ -22,7 +22,13 @@ export default function LoginPage() {
     setError("")
     
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.1.185:5000/api';
+      const getApiUrl = () => {
+        if (typeof window !== 'undefined') {
+          return `http://${window.location.hostname}:5000/api`;
+        }
+        return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      };
+      const apiUrl = getApiUrl();
       console.log('Attempting login to:', apiUrl);
       
       const controller = new AbortController();

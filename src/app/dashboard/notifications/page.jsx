@@ -11,8 +11,16 @@ export default function NotificationsPage() {
   const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState("")
   const [subject, setSubject] = useState("")
+  const [content, setContent] = useState("")
   const [history, setHistory] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(true)
+
+  const roleMap = {
+    all: "ALL",
+    providers: "PROVIDER",
+    clients: "CLIENT",
+    individual: "INDIVIDUAL"
+  }
 
   const fetchHistory = () => {
     dashboardService.getBroadcasts?.()

@@ -1,7 +1,7 @@
 "use client"
 
 import { Sidebar } from "@/components/layout/Sidebar"
-import { Bell, Search, User, Globe, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react"
+import { Bell, Search, User, Globe, LogOut, PanelLeftClose, PanelLeftOpen, MessagesSquare, AlertCircle, Settings } from "lucide-react"
 import { useSocket } from "@/hooks/useSocket"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -47,66 +47,57 @@ export default function DashboardLayout({ children }) {
       
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex flex-col border-b border-[#E2E8F0] bg-white">
+        <header className="flex flex-col bg-white">
           {isMaintenance && (
             <div className="bg-rose-600 text-white text-xs font-bold text-center py-1.5 px-4 animate-pulse">
               ⚠️ MAINTENANCE MODE IS ACTIVE — Users cannot access the app
             </div>
           )}
-          <div className="flex h-16 items-center justify-between px-8">
-            <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarCollapsed((value) => !value)} className="p-2 text-slate-500 hover:bg-[#ECFDF5] hover:text-[#0D9488]">
-              {sidebarCollapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-            </button>
-            <h1 className="text-lg font-semibold text-slate-800">Admin Dashboard</h1>
-            <div className="hidden h-9 w-64 items-center gap-2 bg-slate-100 px-3 md:flex">
-              <Search className="h-4 w-4 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                className="bg-transparent text-sm outline-none placeholder:text-slate-400"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-              isConnected ? 'bg-[#ECFDF5] text-[#0D9488]' : 'bg-red-100 text-red-600'
-            }`}>
-              <Globe className={`h-3 w-3 ${isConnected ? 'animate-pulse' : ''}`} />
-              {isConnected ? 'Realtime Live' : 'Offline'}
-            </div>
-
-            <button className="relative p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2 w-2 bg-[#0D9488] border-2 border-white"></span>
-            </button>
-            <div className="h-8 w-px bg-slate-200"></div>
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-medium text-slate-900">Admin Joseph</p>
-                <p className="text-xs text-slate-500">Super Admin</p>
-              </div>
-              <div className="h-10 w-10 bg-slate-200 flex items-center justify-center border border-slate-300">
-                <User className="h-6 w-6 text-slate-600" />
-              </div>
-              <button 
-                onClick={() => {
-                  localStorage.clear();
-                  window.location.href = "/";
-                }}
-                className="ml-2 p-2 text-slate-400 hover:text-red-500 transition-colors"
-                title="Logout"
-              >
-                <LogOut className="h-5 w-5" />
+          <div className="flex h-[72px] items-center justify-between px-6 border-b border-[#E2E8F0]">
+            <div className="flex items-center gap-4 flex-1">
+              <button onClick={() => setSidebarCollapsed((value) => !value)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <PanelLeftOpen className="h-5 w-5" />
               </button>
+              
+              <div className="hidden h-10 w-96 items-center gap-3 rounded-lg bg-slate-100/80 px-4 md:flex border border-slate-200">
+                <Search className="h-4 w-4 text-slate-400" />
+                <input 
+                  type="text" 
+                  placeholder="Search enterprise-wide data..." 
+                  className="bg-transparent text-[13px] w-full outline-none placeholder:text-slate-500 font-medium text-slate-700"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <MessagesSquare className="h-[20px] w-[20px]" />
+              </button>
+              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <Bell className="h-[20px] w-[20px]" />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 border-2 border-white"></span>
+              </button>
+              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <AlertCircle className="h-[20px] w-[20px]" />
+              </button>
+              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                <Settings className="h-[20px] w-[20px]" />
+              </button>
+              
+              <div className="h-6 w-px bg-slate-200 mx-2"></div>
+              
+              <div className="flex items-center gap-3">
+                <div className="text-right hidden sm:block">
+                  <p className="text-[11px] font-black tracking-widest text-slate-900 uppercase">Fixam OS Core</p>
+                  <p className="text-[10px] text-slate-500 font-medium tracking-wide">SERVER: EST-US-01 <span className="text-[#0D9488]">(ACTIVE)</span></p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto bg-[#F8FAFC]">
           {children}
         </main>
       </div>
