@@ -16,15 +16,17 @@ import {
   Bell, 
   BarChart3, 
   Settings,
-  LogOut,
   MessageSquare,
-  Mail
+  Mail,
+  ShieldCheck,
+  LogOut
 } from "lucide-react"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: Users, label: "Users", href: "/dashboard/users" },
   { icon: Toolbox, label: "Providers", href: "/dashboard/providers" },
+  { icon: ShieldCheck, label: "Verifications", href: "/dashboard/verifications" },
   { icon: Briefcase, label: "Jobs", href: "/dashboard/jobs" },
   { icon: AlertCircle, label: "Task Approval", href: "/dashboard/jobs/approval" },
   { icon: Wallet, label: "Wallet & Coins", href: "/dashboard/wallet" },
@@ -84,6 +86,7 @@ export function Sidebar({ collapsed = false }) {
           let badge = 0
           if (item.label === "Messages") badge = unreadMessages
           if (item.label === "Task Approval") badge = stats?.pendingTaskApprovals || 0
+          if (item.label === "Verifications") badge = stats?.pendingVerifications || 0
           if (item.label === "Reports & Disputes") badge = stats?.openReports || 0
           if (item.label === "Feedback") badge = stats?.newFeedback || 0
           

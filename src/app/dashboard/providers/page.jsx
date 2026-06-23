@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { Search, Filter, ShieldCheck, XCircle, MoreVertical, Star, FileText } from "lucide-react"
 import { dashboardService } from "@/services/api"
-import { toast } from "sonner"
 
 export default function ProvidersPage() {
   const [providers, setProviders] = useState([])
@@ -28,29 +27,7 @@ export default function ProvidersPage() {
     return () => clearTimeout(id)
   }, [])
 
-  const handleVerify = async (id, status) => {
-    try {
-      let reason = "";
-      if (status === 'REJECTED') {
-        const choice = window.prompt(
-          "Rejection reason:\n1. Face selfie not matching or not clear\n2. ID document is not clear\n3. Other reason\n\nType 1, 2, or your custom reason:"
-        );
-        if (!choice) return;
-        reason = choice === '1'
-          ? 'Face selfie is not matching the document or the selfie is not clear.'
-          : choice === '2'
-            ? 'ID document is not clear. Please upload a sharper photo with all corners visible.'
-            : choice === '3'
-              ? (window.prompt('Enter rejection reason:') || 'Verification requirements were not met.')
-              : choice;
-      }
-      await dashboardService.verifyProvider({ providerId: id, status, reason });
-      toast.success(`Provider ${status === 'VERIFIED' ? 'Verified' : 'Rejected'} Successfully`);
-      fetchProviders();
-    } catch (error) {
-      toast.error("Action failed");
-    }
-  }
+
 
   if (loading) return <div className="p-8 text-slate-500 font-medium">Loading professional profiles...</div>
 
@@ -58,14 +35,14 @@ export default function ProvidersPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Provider Verification</h2>
-          <p className="text-slate-500">Approve or reject professional service provider applications.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Providers</h2>
+          <p className="text-slate-500">View and manage professional service provider accounts.</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 bg-slate-200 w-fit rounded-xl">
-        {["all", "pending", "verified", "rejected"].map((tab) => (
+        {["all", "verified", "unverified"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -80,7 +57,7 @@ export default function ProvidersPage() {
 
       {/* Providers Grid */}
       <div className="grid gap-6 md:grid-cols-2">
-        {providers.filter(p => activeTab === 'all' || p.verification.toLowerCase() === activeTab).map((provider) => (
+        {providers.filter(p => activeTab === 'all' || (activeTab === 'verified' ? p.verification === 'VERIFIED' : p.verification !== 'VERIFIED')).map((provider) => (
           <div key={provider.id} className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-4">
@@ -123,36 +100,8 @@ export default function ProvidersPage() {
               </div>
             </div>
 
-            {provider.documents?.length > 0 && (
-              <div className="mt-5 rounded-xl border bg-blue-50 p-3">
-                <p className="mb-2 text-xs font-black uppercase tracking-wider text-blue-700">Submitted documents</p>
-                <div className="space-y-2">
-                  {provider.documents.map((doc) => (
-                    <a key={doc.id} href={doc.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:text-blue-700">
-                      <span>{doc.type}</span>
-                      <FileText className="h-4 w-4" />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <div className="mt-6 flex gap-3">
-              <button 
-                onClick={() => handleVerify(provider.id, 'VERIFIED')}
-                className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-emerald-700 transition-colors"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                Verify
-              </button>
-              <button 
-                onClick={() => handleVerify(provider.id, 'REJECTED')}
-                className="flex-1 flex items-center justify-center gap-2 border border-red-200 text-red-600 py-2.5 rounded-xl font-bold text-sm hover:bg-red-50 transition-colors"
-              >
-                <XCircle className="h-4 w-4" />
-                Reject
-              </button>
-              <button className="p-2.5 border rounded-xl hover:bg-slate-50 transition-colors">
+              <button className="p-2.5 border rounded-xl hover:bg-slate-50 transition-colors ml-auto">
                 <MoreVertical className="h-5 w-5 text-slate-400" />
               </button>
             </div>

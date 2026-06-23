@@ -1,13 +1,7 @@
 import axios from 'axios';
 
 const getApiUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
-  }
-  if (typeof window !== 'undefined') {
-    return `http://${window.location.hostname}:5000/api`;
-  }
-  return 'http://localhost:5000/api';
+  return '/api';
 };
 
 const API_BASE_URL = getApiUrl();
@@ -15,6 +9,7 @@ export const SOCKET_URL = API_BASE_URL.replace(/\/api\/?$/, '');
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000, // 30 seconds
+  withCredentials: true, // Send HttpOnly cookies with every request
 });
 
 // Add a request interceptor for logging

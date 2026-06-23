@@ -58,8 +58,7 @@ export default function LoginPage() {
         throw new Error('Access denied. You do not have administrator privileges.');
       }
 
-      // Store token for subsequent requests
-      localStorage.setItem('admin_token', data.token);
+      // Store user info for UI (token is handled automatically via HttpOnly cookie)
       localStorage.setItem('admin_user', JSON.stringify(data.user));
       
       console.log('Login successful, redirecting...');
