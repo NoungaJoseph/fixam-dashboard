@@ -24,7 +24,17 @@ const normalizeDashboardConversation = (conversation) => {
   }
 }
 
+import { Suspense } from "react"
+
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-slate-500 font-medium">Loading support inbox...</div>}>
+      <MessagesContent />
+    </Suspense>
+  )
+}
+
+function MessagesContent() {
   const [conversations, setConversations] = useState([])
   const [selected, setSelected] = useState(null)
   const [messages, setMessages] = useState([])
