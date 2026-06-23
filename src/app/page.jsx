@@ -23,7 +23,7 @@ export default function LoginPage() {
     
     try {
       const getApiUrl = () => {
-        return '/api';
+        return process.env.NEXT_PUBLIC_API_URL || 'https://fixam-backend-production.up.railway.app/api';
       };
       const apiUrl = getApiUrl();
       console.log('Attempting login to:', apiUrl);
