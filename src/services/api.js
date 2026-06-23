@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const getApiUrl = () => {
-  return '/api';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://fixam-backend-production.up.railway.app/api';
 };
 
 const API_BASE_URL = getApiUrl();
