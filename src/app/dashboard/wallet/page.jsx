@@ -18,7 +18,7 @@ export default function WalletPage() {
   const [wireLoading, setWireLoading] = useState(false)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [selectedUser, setSelectedUser] = useState(null)
+  const [selectedUsers, setSelectedUsers] = useState([])
   const [coins, setCoins] = useState("")
   const [reason, setReason] = useState("Compensation")
   const [customReason, setCustomReason] = useState("")
@@ -85,18 +85,18 @@ export default function WalletPage() {
     const query = debouncedSearch.trim().toLowerCase()
     if (!query) return []
     return users.filter((user) =>
-      (user.fullName || "").toLowerCase().includes(query) ||
-      (user.phone || "").toLowerCase().includes(query)
+      !selectedUsers.some(su => su.id === user.id) &&
+      ((user.fullName || "").toLowerCase().includes(query) ||
+      (user.phone || "").toLowerCase().includes(query))
     ).slice(0, 8)
-  }, [users, debouncedSearch])
+  }, [users, debouncedSearch, selectedUsers])
 
   const coinCount = Math.max(0, Number(coins || 0))
-  const currentBalance = selectedUser?.wallet?.balance || 0
   const wireReason = reason === "Other" ? customReason : reason
 
   const handleWireCoins = async () => {
-    if (!selectedUser || coinCount < 1 || coinCount > 10000) {
-      setBanner({ type: "error", text: "Select a user and enter 1 to 10000 coins." })
+    if (selectedUsers.length === 0 || coinCount < 1 || coinCount > 10000) {
+      setBanner({ type: "error", text: "Select at least one user and enter 1 to 10000 coins." })
       return
     }
     if (!wireReason?.trim()) {
@@ -105,11 +105,16 @@ export default function WalletPage() {
     }
     try {
       setWireLoading(true)
-      await dashboardService.wireCoins({ userId: selectedUser.id, amount: coinCount, reason: wireReason })
-      setBanner({ type: "success", text: "Coins added successfully." })
+      await Promise.all(
+        selectedUsers.map(user => 
+          dashboardService.wireCoins({ userId: user.id, amount: coinCount, reason: wireReason })
+        )
+      )
+      setBanner({ type: "success", text: `Coins added successfully to ${selectedUsers.length} user(s).` })
       setCoins("")
       setReason("Compensation")
       setCustomReason("")
+      setSelectedUsers([])
       await Promise.all([fetchStats(false), fetchWireHistory()])
     } catch (error) {
       setBanner({ type: "error", text: error.response?.data?.message || "Failed to wire coins." })
@@ -166,26 +171,6 @@ export default function WalletPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
-        <div className="border-b p-6">
-          <h3 className="font-bold text-slate-900">Recent Transactions</h3>
-        </div>
-        <Table headers={["User", "Coins", "Amount (FCFA)", "Status", "Date"]}>
-          {(stats.recentTransactions || []).map((tx) => (
-            <tr key={tx.id} className="border-b last:border-b-0 hover:bg-slate-50">
-              <td className="px-5 py-4">
-                <p className="font-semibold text-slate-900">{tx.userName || "Unknown user"}</p>
-                <p className="text-xs text-slate-500">{tx.userPhone}</p>
-              </td>
-              <td className="px-5 py-4 font-black text-slate-900">{tx.coins}</td>
-              <td className="px-5 py-4 font-bold text-slate-700">{tx.amountFCFA}</td>
-              <td className="px-5 py-4"><StatusPill status={tx.status} /></td>
-              <td className="px-5 py-4 text-sm text-slate-500">{new Date(tx.createdAt).toLocaleString()}</td>
-            </tr>
-          ))}
-        </Table>
-      </div>
-
       <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
         <div className="rounded-2xl border bg-white p-6 shadow-sm">
           <h3 className="mb-5 font-bold text-slate-900">Wire Coins</h3>
@@ -196,15 +181,16 @@ export default function WalletPage() {
           )}
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-bold text-slate-700">Search User</label>
+              <label className="text-sm font-bold text-slate-700">Search Users</label>
               <div className="mt-2 flex items-center gap-2 rounded-xl border bg-slate-50 px-3 py-2">
                 <Search size={16} className="text-slate-400" />
                 <input value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Name or phone" />
               </div>
-              {filteredUsers.length > 0 && (
+              
+              {search && filteredUsers.length > 0 && (
                 <div className="mt-2 overflow-hidden rounded-xl border">
                   {filteredUsers.map((user) => (
-                    <button key={user.id} onClick={() => setSelectedUser(user)} className="flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-slate-50">
+                    <button key={user.id} onClick={() => { setSelectedUsers(prev => [...prev, user]); setSearch(""); }} className="flex w-full items-center gap-3 border-b px-3 py-2 text-left last:border-b-0 hover:bg-slate-50">
                       <Avatar user={user} />
                       <div className="flex-1">
                         <p className="text-sm font-bold text-slate-900">{user.fullName || "Unknown user"}</p>
@@ -212,6 +198,23 @@ export default function WalletPage() {
                       </div>
                       <span className="text-xs font-black text-slate-600">{user.wallet?.balance || 0} coins</span>
                     </button>
+                  ))}
+                </div>
+              )}
+
+              {selectedUsers.length > 0 && (
+                <div className="mt-3 flex flex-col gap-2">
+                  {selectedUsers.map(user => (
+                    <div key={user.id} className="flex items-center gap-3 rounded-xl border bg-slate-50 px-3 py-2">
+                      <Avatar user={user} />
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-slate-900">{user.fullName || "Unknown user"}</p>
+                        <p className="text-xs text-slate-500">{user.phone}</p>
+                      </div>
+                      <button onClick={() => setSelectedUsers(prev => prev.filter(u => u.id !== user.id))} className="p-2 text-slate-400 hover:text-red-500">
+                        <XCircle size={16} />
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -234,9 +237,9 @@ export default function WalletPage() {
             {reason === "Other" && (
               <input value={customReason} onChange={(e) => setCustomReason(e.target.value)} className="w-full rounded-xl border px-4 py-3 outline-none focus:border-slate-400" placeholder="Custom reason" />
             )}
-            {selectedUser && coinCount > 0 && (
+            {selectedUsers.length > 0 && coinCount > 0 && (
               <div className="rounded-xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
-                Adding {coinCount} coins to {selectedUser.fullName || selectedUser.phone}. Balance: {currentBalance} &rarr; {currentBalance + coinCount} coins
+                Adding {coinCount} coins to {selectedUsers.length} user(s). Total: {coinCount * selectedUsers.length} coins
               </div>
             )}
             <button onClick={handleWireCoins} disabled={wireLoading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 font-bold text-white disabled:opacity-50">
@@ -261,6 +264,26 @@ export default function WalletPage() {
             ))}
           </Table>
         </div>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+        <div className="border-b p-6">
+          <h3 className="font-bold text-slate-900">Recent Transactions</h3>
+        </div>
+        <Table headers={["User", "Coins", "Amount (FCFA)", "Status", "Date"]}>
+          {(stats.recentTransactions || []).map((tx) => (
+            <tr key={tx.id} className="border-b last:border-b-0 hover:bg-slate-50">
+              <td className="px-5 py-4">
+                <p className="font-semibold text-slate-900">{tx.userName || "Unknown user"}</p>
+                <p className="text-xs text-slate-500">{tx.userPhone}</p>
+              </td>
+              <td className="px-5 py-4 font-black text-slate-900">{tx.coins}</td>
+              <td className="px-5 py-4 font-bold text-slate-700">{tx.amountFCFA}</td>
+              <td className="px-5 py-4"><StatusPill status={tx.status} /></td>
+              <td className="px-5 py-4 text-sm text-slate-500">{new Date(tx.createdAt).toLocaleString()}</td>
+            </tr>
+          ))}
+        </Table>
       </div>
     </div>
   )

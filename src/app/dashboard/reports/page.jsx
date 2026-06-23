@@ -6,6 +6,8 @@ import { dashboardService } from "@/services/api"
 
 export default function ReportsPage() {
   const [showBanner, setShowBanner] = useState(true)
+  const [reports, setReports] = useState([])
+  const [loading, setLoading] = useState(true)
 
   const fetchReports = () => {
     dashboardService.getReports()

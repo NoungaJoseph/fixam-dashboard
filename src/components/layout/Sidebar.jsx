@@ -87,7 +87,10 @@ export function Sidebar({ collapsed = false }) {
           if (item.label === "Reports & Disputes") badge = stats?.openReports || 0
           if (item.label === "Feedback") badge = stats?.newFeedback || 0
           
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/") && item.href !== "/dashboard";
+          let isActive = pathname === item.href || (pathname.startsWith(item.href + "/") && item.href !== "/dashboard");
+          if (item.href === "/dashboard/jobs" && pathname.startsWith("/dashboard/jobs/approval")) {
+            isActive = false;
+          }
 
           return (
           <Link
