@@ -210,6 +210,15 @@ export default function SettingsPage() {
                         />
                       </div>
                     )}
+                    <div className="pt-2">
+                      <button 
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="w-full bg-rose-600 text-white font-bold text-sm py-3 rounded-xl hover:bg-rose-700 transition-colors disabled:opacity-50"
+                      >
+                        {saving ? "Applying..." : "Apply Maintenance Settings"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
