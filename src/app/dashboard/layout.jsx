@@ -10,7 +10,8 @@ import { dashboardService } from "@/services/api"
 export default function DashboardLayout({ children }) {
   const [token] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [isMaintenance, setIsMaintenance] = useState(false)
+  const [appMaintenance, setAppMaintenance] = useState(false)
+  const [webMaintenance, setWebMaintenance] = useState(false)
 
   const { isConnected, on } = useSocket(token)
 
@@ -18,8 +19,9 @@ export default function DashboardLayout({ children }) {
     // Check maintenance mode on load
     dashboardService.getSettings?.()
       .then(res => {
-        if (res.data?.data?.maintenanceEnabled) {
-          setIsMaintenance(true)
+        if (res.data?.data) {
+          if (res.data.data.appMaintenanceEnabled) setAppMaintenance(true)
+          if (res.data.data.webMaintenanceEnabled) setWebMaintenance(true)
         }
       })
       .catch(() => {})
@@ -48,9 +50,14 @@ export default function DashboardLayout({ children }) {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Header */}
         <header className="flex flex-col bg-white">
-          {isMaintenance && (
+          {appMaintenance && (
             <div className="bg-rose-600 text-white text-xs font-bold text-center py-1.5 px-4 animate-pulse">
-              ⚠️ MAINTENANCE MODE IS ACTIVE — Users cannot access the app
+              ⚠️ APP MAINTENANCE MODE IS ACTIVE — Mobile users cannot access the app
+            </div>
+          )}
+          {webMaintenance && (
+            <div className="bg-orange-600 text-white text-xs font-bold text-center py-1.5 px-4 animate-pulse">
+              ⚠️ WEBSITE MAINTENANCE MODE IS ACTIVE — The website is locked
             </div>
           )}
           <div className="flex h-[72px] items-center justify-between px-6 border-b border-[#E2E8F0]">
