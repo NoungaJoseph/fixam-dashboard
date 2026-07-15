@@ -23,7 +23,7 @@ export default function LoginPage() {
     
     try {
       const getApiUrl = () => {
-        return process.env.NEXT_PUBLIC_API_URL || 'https://fixam-backend.onrender.com/api';
+        return process.env.NEXT_PUBLIC_API_URL || 'https://api.usefixam.com/api';
       };
       const apiUrl = getApiUrl();
       console.log('Attempting login to:', apiUrl);

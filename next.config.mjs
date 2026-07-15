@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://fixam-backend.onrender.com/api/:path*',
+        destination: 'https://api.usefixam.com/api/:path*',
       },
     ]
   },

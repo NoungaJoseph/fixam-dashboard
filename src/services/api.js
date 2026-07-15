@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const getApiUrl = () => {
-  return process.env.NEXT_PUBLIC_API_URL || 'https://fixam-backend.onrender.com/api';
+  return process.env.NEXT_PUBLIC_API_URL || 'https://api.usefixam.com/api';
 };
 
 const API_BASE_URL = getApiUrl();
