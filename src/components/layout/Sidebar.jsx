@@ -19,7 +19,9 @@ import {
   MessageSquare,
   Mail,
   ShieldCheck,
-  LogOut
+  LogOut,
+  GraduationCap,
+  Globe2
 } from "lucide-react"
 
 const menuItems = [
@@ -35,7 +37,9 @@ const menuItems = [
   { icon: AlertCircle, label: "Reports & Disputes", href: "/dashboard/reports" },
   { icon: MessageSquare, label: "Feedback", href: "/dashboard/feedback" },
   { icon: Bell, label: "Notifications", href: "/dashboard/notifications" },
-  { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
+  { icon: BarChart3, label: "Platform Analytics", href: "/dashboard/analytics" },
+  { icon: Globe2, label: "Web Analytics & SEO", href: "/dashboard/web-analytics" },
+  { icon: GraduationCap, label: "Careerpath Hub", href: "/dashboard/careerpath" },
   { icon: Settings, label: "Settings", href: "/dashboard/settings" },
 ]
 
