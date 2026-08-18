@@ -97,6 +97,7 @@ export function Sidebar({ collapsed = false }) {
           if (item.label === "Verifications") badge = stats?.pendingVerifications || 0
           if (item.label === "Reports & Disputes") badge = stats?.openReports || 0
           if (item.label === "Feedback") badge = stats?.newFeedback || 0
+          if (item.label === "Wallet & Coins") badge = stats?.pendingTransactions || 0
           
           let isActive = pathname === item.href || (pathname.startsWith(item.href + "/") && item.href !== "/dashboard");
           if (item.href === "/dashboard/jobs" && pathname.startsWith("/dashboard/jobs/approval")) {
