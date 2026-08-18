@@ -19,6 +19,8 @@ import {
   MessageSquare,
   Mail,
   ShieldCheck,
+  ShieldAlert,
+  FileText,
   LogOut,
   GraduationCap,
   Globe2
@@ -31,6 +33,8 @@ const menuItems = [
   { icon: ShieldCheck, label: "Verifications", href: "/dashboard/verifications" },
   { icon: Briefcase, label: "Jobs", href: "/dashboard/jobs" },
   { icon: AlertCircle, label: "Task Approval", href: "/dashboard/jobs/approval" },
+  { icon: ShieldAlert, label: "Dispute Center", href: "/dashboard/disputes" },
+  { icon: FileText, label: "Service Agreements", href: "/dashboard/agreements" },
   { icon: Wallet, label: "Wallet & Coins", href: "/dashboard/wallet" },
   { icon: MessagesSquare, label: "Messages", href: "/dashboard/messages" },
   { icon: Mail, label: "Broadcasts", href: "/dashboard/broadcasts" },

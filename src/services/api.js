@@ -88,6 +88,12 @@ export const dashboardService = {
   getUnreadMessageCount: () => api.get('/chat/unread-count'),
   sendChatMessage: (data) => api.post('/chat/send', data),
   getConversationBetweenUsers: (user1Id, user2Id) => api.get(`/admin/conversations/between/${user1Id}/${user2Id}`),
+  getDisputes: (params) => api.get('/admin/disputes', { params }),
+  getDisputeDetails: (id) => api.get(`/admin/disputes/${id}`),
+  requestDisputeEvidence: (id, data) => api.post(`/admin/disputes/${id}/request-evidence`, data),
+  resolveDispute: (id, data) => api.post(`/admin/disputes/${id}/resolve`, data),
+  getAgreements: (params) => api.get('/admin/agreements', { params }),
+  getAgreementDetails: (id) => api.get(`/admin/agreements/${id}`),
 };
 
 export default api;
