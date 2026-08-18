@@ -17,6 +17,7 @@ export default function WalletPage() {
   const [period, setPeriod] = useState("daily")
   const [loading, setLoading] = useState(true)
   const [wireLoading, setWireLoading] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [actionLoadingId, setActionLoadingId] = useState(null)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
@@ -44,6 +45,22 @@ export default function WalletPage() {
       setPendingTransactions(res.data.data || [])
     } catch (error) {
       console.error("Failed to load pending transactions:", error)
+    }
+  }
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true)
+    try {
+      await Promise.all([
+        fetchStats(false),
+        fetchPendingTransactions(),
+        fetchWireHistory()
+      ])
+      toast.success("Payment requests and wallet stats updated!")
+    } catch (error) {
+      toast.error("Failed to refresh requests")
+    } finally {
+      setTimeout(() => setIsRefreshing(false), 500)
     }
   }
 
@@ -215,10 +232,12 @@ export default function WalletPage() {
             </div>
           </div>
           <button 
-            onClick={() => fetchPendingTransactions()}
-            className="px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold rounded-xl border border-slate-200 shadow-sm transition"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            className="px-4 py-2 bg-white text-slate-700 hover:bg-slate-50 text-xs font-bold rounded-xl border border-slate-200 shadow-sm transition flex items-center gap-2 disabled:opacity-60"
           >
-            ↻ Refresh Requests
+            <Loader2 size={14} className={isRefreshing ? "animate-spin text-teal-600" : "text-slate-400"} />
+            {isRefreshing ? "Refreshing..." : "Refresh Requests"}
           </button>
         </div>
 
