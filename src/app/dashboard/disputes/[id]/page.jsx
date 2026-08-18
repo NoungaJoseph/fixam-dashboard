@@ -175,6 +175,19 @@ export default function DisputeDetailPage({ params }) {
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-100">
+              {booking.id && (
+                <a
+                  href={`https://api.usefixam.com/api/bookings/${booking.id}/contract-pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition shadow-sm inline-flex items-center gap-1.5"
+                >
+                  📄 Download Service Contract (PDF)
+                </a>
+              )}
+            </div>
+
             {/* Preserved Agreements Snapshot */}
             {booking.agreements && booking.agreements.length > 0 && (
               <div className="space-y-2 pt-2 border-t border-slate-100">

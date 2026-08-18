@@ -298,13 +298,23 @@ export default function JobsPage() {
                 </div>
               </div>
             </div>
-            <div className="p-6 bg-slate-50 border-t flex justify-end gap-3">
+            <div className="p-6 bg-slate-50 border-t flex flex-wrap justify-end gap-3">
               <button onClick={() => setSelectedJob(null)} className="px-6 py-2.5 font-bold text-slate-600 hover:text-slate-900">Close</button>
+              {selectedJob.id && (
+                <a 
+                  href={`https://api.usefixam.com/api/bookings/${selectedJob.id}/contract-pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-6 py-2.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 shadow-lg shadow-teal-200 transition-all flex items-center gap-2"
+                >
+                  📄 Download Contract (PDF)
+                </a>
+              )}
               <button onClick={handleReadConversation} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
                 <MessageSquare size={18} />
                 Read Conversation
               </button>
-              <button onClick={() => window.location.href = '/dashboard/reports'} className="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all">Support Dispute</button>
+              <button onClick={() => window.location.href = '/dashboard/disputes'} className="px-6 py-2.5 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 shadow-lg shadow-rose-200 transition-all">Support Dispute</button>
             </div>
           </div>
         </div>
