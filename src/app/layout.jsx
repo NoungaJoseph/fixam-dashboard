@@ -2,8 +2,16 @@ import "./globals.css"
 import { Toaster } from "sonner"
 
 export const metadata = {
-  title: "Fixam Admin Dashboard",
-  description: "Marketplace Management System",
+  title: "Fixam Pro Control Panel | Admin Dashboard",
+  description: "Fixam Marketplace Management System & Control Panel",
+  icons: {
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/icon.png", type: "image/png" }
+    ],
+    shortcut: "/favicon.png",
+    apple: "/apple-touch-icon.png",
+  },
 }
 
 export default function RootLayout({ children }) {

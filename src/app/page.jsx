@@ -71,13 +71,15 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
       <form onSubmit={handleLogin} className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-white">
-            <Toolbox className="h-6 w-6" />
-          </div>
+        <div className="mb-8 flex items-center gap-3.5">
+          <img 
+            src="/logo.png" 
+            alt="Fixam Pro Control Panel" 
+            className="h-12 w-12 rounded-full object-cover shadow-lg ring-2 ring-blue-500/30" 
+          />
           <div>
-            <h1 className="text-xl font-bold text-white">Fixam Admin</h1>
-            <p className="text-sm text-slate-400">Sign in with an admin account.</p>
+            <h1 className="text-xl font-bold text-white tracking-tight">Fixam Pro Control Panel</h1>
+            <p className="text-xs text-slate-400">Administrator authentication portal</p>
           </div>
         </div>
 
