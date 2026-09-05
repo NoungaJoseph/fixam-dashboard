@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Bell, Search, User, Globe, LogOut, PanelLeftClose, PanelLeftOpen, MessagesSquare, AlertCircle, Settings } from "lucide-react"
 import { useSocket } from "@/hooks/useSocket"
@@ -12,16 +13,25 @@ export default function DashboardLayout({ children }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [appMaintenance, setAppMaintenance] = useState(false)
   const [webMaintenance, setWebMaintenance] = useState(false)
+  const [pendingApprovals, setPendingApprovals] = useState(0)
 
   const { isConnected, on } = useSocket(token)
 
   useEffect(() => {
-    // Check maintenance mode on load
+    // Check maintenance mode and pending approvals count on load
     dashboardService.getSettings?.()
       .then(res => {
         if (res.data?.data) {
           if (res.data.data.appMaintenanceEnabled) setAppMaintenance(true)
           if (res.data.data.webMaintenanceEnabled) setWebMaintenance(true)
+        }
+      })
+      .catch(() => {})
+
+    dashboardService.getStats?.()
+      .then(res => {
+        if (res.data?.data) {
+          setPendingApprovals(res.data.data.pendingTaskApprovals || res.data.data.pendingApprovals || 0)
         }
       })
       .catch(() => {})
@@ -32,14 +42,34 @@ export default function DashboardLayout({ children }) {
 
     // Global Listeners for Admin
     const offNewUser = on('notification:admin', (data) => {
+      if (data.type === 'JOB_PENDING_APPROVAL') {
+        setPendingApprovals(prev => prev + 1)
+      }
       toast.info(data.message || "New System Update", {
         description: data.body,
-        duration: 5000,
+        duration: 6000,
+        action: data.type === 'JOB_PENDING_APPROVAL' ? {
+          label: 'Review Task',
+          onClick: () => { window.location.href = '/dashboard/jobs/approval' }
+        } : undefined
+      })
+    })
+
+    const offJobPending = on('job:pending-approval', (data) => {
+      setPendingApprovals(prev => prev + 1)
+      toast.warning(data.title ? `New Task Awaiting Approval: ${data.title}` : "New Task Awaiting Approval", {
+        description: `Client: ${data.clientName || 'Client'}. Review required before publishing.`,
+        duration: 8000,
+        action: {
+          label: 'Review Task',
+          onClick: () => { window.location.href = '/dashboard/jobs/approval' }
+        }
       })
     })
 
     return () => {
       offNewUser?.()
+      offJobPending?.()
     }
   }, [isConnected, on])
 
@@ -77,19 +107,39 @@ export default function DashboardLayout({ children }) {
             </div>
 
             <div className="flex items-center gap-4">
-              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              <Link 
+                href="/dashboard/messages" 
+                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                title="Support & User Messages"
+              >
                 <MessagesSquare className="h-[20px] w-[20px]" />
-              </button>
-              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              </Link>
+              <Link 
+                href="/dashboard/jobs/approval" 
+                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                title={pendingApprovals > 0 ? `${pendingApprovals} task(s) awaiting approval` : "Pending Task Approvals"}
+              >
                 <Bell className="h-[20px] w-[20px]" />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 border-2 border-white"></span>
-              </button>
-              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                {pendingApprovals > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white animate-pulse">
+                    {pendingApprovals > 99 ? '99+' : pendingApprovals}
+                  </span>
+                )}
+              </Link>
+              <Link 
+                href="/dashboard/disputes" 
+                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                title="Disputes Management"
+              >
                 <AlertCircle className="h-[20px] w-[20px]" />
-              </button>
-              <button className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              </Link>
+              <Link 
+                href="/dashboard/settings" 
+                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                title="System Settings"
+              >
                 <Settings className="h-[20px] w-[20px]" />
-              </button>
+              </Link>
               
               <div className="h-6 w-px bg-slate-200 mx-2"></div>
               

@@ -32,12 +32,15 @@ export default function JobApprovalPage() {
     return () => clearInterval(id)
   }, [])
 
-  const filteredJobs = jobs.filter(j => 
-    j.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    j.client?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    j.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    j.id.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filteredJobs = jobs.filter(j => {
+    const term = (searchTerm || '').toLowerCase().trim();
+    if (!term) return true;
+    const title = (j.title || '').toLowerCase();
+    const clientName = (j.client?.fullName || j.client?.email || '').toLowerCase();
+    const loc = (j.location || '').toLowerCase();
+    const id = (j.id || '').toLowerCase();
+    return title.includes(term) || clientName.includes(term) || loc.includes(term) || id.includes(term);
+  });
 
   const handleApprove = async (jobId) => {
     try {

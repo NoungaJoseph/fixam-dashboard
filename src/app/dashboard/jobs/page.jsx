@@ -1,10 +1,12 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import { Briefcase, MapPin, Calendar, User, CheckCircle, Clock, Search, Filter, Hammer, X, TrendingUp, MessageSquare } from "lucide-react"
+import Link from "next/link"
+import { Briefcase, MapPin, Calendar, User, CheckCircle, Clock, Search, Filter, Hammer, X, TrendingUp, MessageSquare, AlertCircle, ExternalLink } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { formatCurrency } from "@/lib/utils"
 import { dashboardService } from "@/services/api"
+import { toast } from "sonner"
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState([])
@@ -12,6 +14,7 @@ export default function JobsPage() {
   const [selectedJob, setSelectedJob] = useState(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("All")
+  const [processingJobId, setProcessingJobId] = useState(null)
   
   const [viewingConversation, setViewingConversation] = useState(false)
   const [conversation, setConversation] = useState(null)
@@ -45,16 +48,74 @@ export default function JobsPage() {
     }
   };
 
+  const handleApproveJob = async (jobId) => {
+    try {
+      setProcessingJobId(jobId)
+      await dashboardService.approveJob(jobId)
+      toast.success("Task approved and published to providers!")
+      setJobs(prev => prev.map(j => j.id === jobId ? { ...j, approvalStatus: 'APPROVED' } : j))
+      if (selectedJob?.id === jobId) {
+        setSelectedJob(prev => prev ? { ...prev, approvalStatus: 'APPROVED' } : null)
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to approve task")
+    } finally {
+      setProcessingJobId(null)
+    }
+  }
+
+  const handleRejectJob = async (jobId) => {
+    const reason = window.prompt("Reason for rejection (client will be notified):")
+    if (!reason || !reason.trim()) return
+    try {
+      setProcessingJobId(jobId)
+      await dashboardService.rejectJob(jobId, { reason })
+      toast.success("Task rejected")
+      setJobs(prev => prev.filter(j => j.id !== jobId))
+      if (selectedJob?.id === jobId) setSelectedJob(null)
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to reject task")
+    } finally {
+      setProcessingJobId(null)
+    }
+  }
+
   useEffect(() => {
     Promise.allSettled([
       dashboardService.getJobs(),
-      dashboardService.getBookings()
-    ]).then(([jobsRes, bookingsRes]) => {
+      dashboardService.getBookings(),
+      dashboardService.getPendingJobs?.() || Promise.resolve({ data: { data: [] } })
+    ]).then(([jobsRes, bookingsRes, pendingRes]) => {
       let combined = [];
+      const seenIds = new Set();
+
       if (jobsRes.status === 'fulfilled') {
         const jobsData = jobsRes.value.data?.data;
-        combined = [...combined, ...(jobsData?.items || jobsData || [])];
+        const items = jobsData?.items || jobsData || [];
+        items.forEach(j => {
+          if (j?.id && !seenIds.has(j.id)) {
+            seenIds.add(j.id);
+            combined.push(j);
+          }
+        });
       }
+
+      if (pendingRes.status === 'fulfilled') {
+        const pendingItems = pendingRes.value.data?.data || [];
+        pendingItems.forEach(pj => {
+          if (pj?.id && !seenIds.has(pj.id)) {
+            seenIds.add(pj.id);
+            combined.push({
+              ...pj,
+              approvalStatus: pj.approvalStatus || 'PENDING_APPROVAL'
+            });
+          } else if (pj?.id && seenIds.has(pj.id)) {
+            const existing = combined.find(x => x.id === pj.id);
+            if (existing) existing.approvalStatus = pj.approvalStatus || 'PENDING_APPROVAL';
+          }
+        });
+      }
+
       if (bookingsRes.status === 'fulfilled') {
         const bookings = bookingsRes.value.data?.data || [];
         const mappedBookings = bookings.map(b => ({
@@ -68,6 +129,7 @@ export default function JobsPage() {
         }));
         combined = [...combined, ...mappedBookings];
       }
+
       combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setJobs(combined);
       setLoading(false);
@@ -80,14 +142,16 @@ export default function JobsPage() {
     let live = 0
     let completed = 0
     let pending = 0
+    let awaitingApproval = 0
 
     jobs.forEach(j => {
+      if (j.approvalStatus === 'PENDING_APPROVAL') awaitingApproval++
       if (j.status === 'IN_PROGRESS' || j.status === 'ASSIGNED') live++
       else if (j.status === 'COMPLETED') completed++
-      else if (j.status === 'PENDING') pending++
+      else if (j.status === 'PENDING' && j.approvalStatus !== 'PENDING_APPROVAL') pending++
     })
 
-    return { total, live, completed, pending }
+    return { total, live, completed, pending, awaitingApproval }
   }, [jobs])
 
   // Chart Data: Jobs created last 7 days
@@ -108,15 +172,18 @@ export default function JobsPage() {
   }, [jobs])
 
   const filteredJobs = jobs.filter(j => {
-    const matchesSearch = j.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          j.client?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          j.id?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+    const term = (searchTerm || '').toLowerCase().trim();
+    const title = (j.title || '').toLowerCase();
+    const clientName = (j.client?.fullName || j.client?.email || '').toLowerCase();
+    const id = (j.id || '').toLowerCase();
+
+    const matchesSearch = !term || title.includes(term) || clientName.includes(term) || id.includes(term);
     if (!matchesSearch) return false
 
+    if (activeTab === "Awaiting Approval") return j.approvalStatus === 'PENDING_APPROVAL'
     if (activeTab === "Live") return j.status === "IN_PROGRESS" || j.status === "ASSIGNED"
     if (activeTab === "Completed") return j.status === "COMPLETED"
-    if (activeTab === "Pending") return j.status === "PENDING"
+    if (activeTab === "Pending") return j.status === "PENDING" && j.approvalStatus !== 'PENDING_APPROVAL'
     if (activeTab === "Cancelled") return j.status === "CANCELLED"
     return true
   })
@@ -128,15 +195,59 @@ export default function JobsPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-slate-900">Job Management</h2>
-          <p className="text-slate-500">Monitor all service requests, track live jobs, and view completion stats.</p>
+          <p className="text-slate-500">Monitor all service requests, track live jobs, and review pending task submissions.</p>
         </div>
+        {stats.awaitingApproval > 0 && (
+          <Link
+            href="/dashboard/jobs/approval"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+          >
+            <Clock className="h-4 w-4" />
+            Review {stats.awaitingApproval} Pending Approvals &rarr;
+          </Link>
+        )}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      {stats.awaitingApproval > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">
+                {stats.awaitingApproval === 1 
+                  ? "1 task waiting for admin review" 
+                  : `${stats.awaitingApproval} tasks waiting for admin review`}
+              </p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                Clients posted tasks awaiting admin review before they are made visible to providers.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setActiveTab("Awaiting Approval")}
+              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+            >
+              Filter Here
+            </button>
+            <Link
+              href="/dashboard/jobs/approval"
+              className="px-4 py-2 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold rounded-xl transition-colors"
+            >
+              Approval Queue &rarr;
+            </Link>
+          </div>
+        </div>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-5">
         <Metric title="Total Jobs" value={stats.total} icon={Briefcase} tone="blue" />
-        <Metric title="Live Jobs" value={stats.live} icon={TrendingUp} tone="amber" />
-        <Metric title="Completed" value={stats.completed} icon={CheckCircle} tone="emerald" />
-        <Metric title="Pending" value={stats.pending} icon={Clock} tone="teal" />
+        <Metric title="Awaiting Review" value={stats.awaitingApproval} icon={Clock} tone="amber" />
+        <Metric title="Live Jobs" value={stats.live} icon={TrendingUp} tone="emerald" />
+        <Metric title="Completed" value={stats.completed} icon={CheckCircle} tone="teal" />
+        <Metric title="Pending" value={stats.pending} icon={Clock} tone="slate" />
       </div>
 
       <div className="rounded-2xl border bg-white p-6 shadow-sm">
@@ -157,13 +268,20 @@ export default function JobsPage() {
       <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
         <div className="border-b p-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-50">
           <div className="flex gap-2 bg-white p-1 rounded-xl border flex-wrap">
-            {["All", "Pending", "Live", "Completed", "Cancelled"].map(tab => (
+            {["All", "Awaiting Approval", "Pending", "Live", "Completed", "Cancelled"].map(tab => (
               <button 
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === tab ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'}`}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+                  activeTab === tab ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'
+                }`}
               >
                 {tab}
+                {tab === "Awaiting Approval" && stats.awaitingApproval > 0 && (
+                  <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full">
+                    {stats.awaitingApproval}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -221,32 +339,72 @@ export default function JobsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end gap-3 border-t lg:border-t-0 lg:border-l pt-4 lg:pt-0 lg:pl-6 min-w-[180px]">
+                  <div className="flex flex-col items-end gap-3 border-t lg:border-t-0 lg:border-l pt-4 lg:pt-0 lg:pl-6 min-w-[200px]">
                     <div className="text-right w-full">
                       <p className="text-2xl font-black text-slate-900">{formatCurrency(job.budget || 0)}</p>
                       <div className={`mt-1 flex items-center justify-end gap-1.5 text-xs font-bold uppercase ${
+                        job.approvalStatus === 'PENDING_APPROVAL' ? 'text-amber-600' :
                         job.status === 'COMPLETED' ? 'text-emerald-600' : 
                         (job.status === 'IN_PROGRESS' || job.status === 'ASSIGNED') ? 'text-blue-600' : 
-                        job.status === 'CANCELLED' ? 'text-red-600' : 'text-amber-600'
+                        job.status === 'CANCELLED' ? 'text-red-600' : 'text-slate-600'
                       }`}>
-                        {job.status === 'COMPLETED' ? <CheckCircle size={12}/> : <Clock size={12}/>}
-                        {job.status.replace('_', ' ')}
+                        {job.approvalStatus === 'PENDING_APPROVAL' ? (
+                          <>
+                            <Clock size={12}/>
+                            Awaiting Approval
+                          </>
+                        ) : job.status === 'COMPLETED' ? (
+                          <>
+                            <CheckCircle size={12}/>
+                            COMPLETED
+                          </>
+                        ) : (
+                          <>
+                            <Clock size={12}/>
+                            {job.status?.replace('_', ' ') || 'PENDING'}
+                          </>
+                        )}
                       </div>
                     </div>
                     
-                    <div className="flex w-full gap-2 mt-2">
-                      <button 
-                        onClick={() => setSelectedJob(job)}
-                        className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all text-center"
-                      >
-                        Details
-                      </button>
-                      <button 
-                        className="flex-1 bg-slate-900 text-white py-2 rounded-xl font-bold text-xs hover:bg-slate-800 transition-all shadow-md text-center"
-                      >
-                        Track Action
-                      </button>
-                    </div>
+                    {job.approvalStatus === 'PENDING_APPROVAL' ? (
+                      <div className="flex w-full gap-2 mt-2">
+                        <button 
+                          onClick={() => handleApproveJob(job.id)}
+                          disabled={processingJobId === job.id}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-2 rounded-xl font-bold text-xs transition-all shadow-sm text-center"
+                        >
+                          {processingJobId === job.id ? "..." : "Approve"}
+                        </button>
+                        <button 
+                          onClick={() => handleRejectJob(job.id)}
+                          disabled={processingJobId === job.id}
+                          className="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 py-2 rounded-xl font-bold text-xs transition-all text-center"
+                        >
+                          Reject
+                        </button>
+                        <button 
+                          onClick={() => setSelectedJob(job)}
+                          className="bg-slate-100 text-slate-700 px-3 py-2 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all text-center"
+                        >
+                          Details
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex w-full gap-2 mt-2">
+                        <button 
+                          onClick={() => setSelectedJob(job)}
+                          className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all text-center"
+                        >
+                          Details
+                        </button>
+                        <button 
+                          className="flex-1 bg-slate-900 text-white py-2 rounded-xl font-bold text-xs hover:bg-slate-800 transition-all shadow-md text-center"
+                        >
+                          Track Action
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -260,7 +418,14 @@ export default function JobsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
             <div className="p-6 border-b flex items-center justify-between bg-slate-50">
-              <h3 className="text-xl font-bold text-slate-900">Job Details</h3>
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Job Details</h3>
+                {selectedJob.approvalStatus === 'PENDING_APPROVAL' && (
+                  <span className="inline-block mt-1 px-2.5 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    Awaiting Admin Approval
+                  </span>
+                )}
+              </div>
               <button onClick={() => setSelectedJob(null)} className="p-2 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">
                 <X size={24}/>
               </button>
@@ -286,7 +451,9 @@ export default function JobsPage() {
               <div className="grid grid-cols-3 gap-6 pt-4 border-t">
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Status</p>
-                  <span className="text-sm font-bold text-blue-600">{selectedJob.status?.replace('_', ' ') || 'PENDING'}</span>
+                  <span className="text-sm font-bold text-blue-600">
+                    {selectedJob.approvalStatus === 'PENDING_APPROVAL' ? 'PENDING APPROVAL' : selectedJob.status?.replace('_', ' ') || 'PENDING'}
+                  </span>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Category</p>
@@ -300,21 +467,44 @@ export default function JobsPage() {
             </div>
             <div className="p-6 bg-slate-50 border-t flex flex-wrap justify-end gap-3">
               <button onClick={() => setSelectedJob(null)} className="px-6 py-2.5 font-bold text-slate-600 hover:text-slate-900">Close</button>
-              {selectedJob.id && (
-                <a 
-                  href={`https://api.usefixam.com/api/bookings/${selectedJob.id}/contract-pdf`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-6 py-2.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 shadow-lg shadow-teal-200 transition-all flex items-center gap-2"
-                >
-                  📄 Download Contract (PDF)
-                </a>
+              {selectedJob.approvalStatus === 'PENDING_APPROVAL' ? (
+                <>
+                  <button 
+                    onClick={() => handleApproveJob(selectedJob.id)} 
+                    disabled={processingJobId === selectedJob.id}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-md flex items-center gap-1.5"
+                  >
+                    <CheckCircle size={16} />
+                    {processingJobId === selectedJob.id ? "Approving..." : "Approve & Publish"}
+                  </button>
+                  <button 
+                    onClick={() => handleRejectJob(selectedJob.id)} 
+                    disabled={processingJobId === selectedJob.id}
+                    className="px-6 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl font-bold transition-all shadow-md flex items-center gap-1.5"
+                  >
+                    <X size={16} />
+                    Reject Task
+                  </button>
+                </>
+              ) : (
+                <>
+                  {selectedJob.id && (
+                    <a 
+                      href={`https://api.usefixam.com/api/bookings/${selectedJob.id}/contract-pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-6 py-2.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 shadow-lg shadow-teal-200 transition-all flex items-center gap-2"
+                    >
+                      📄 Download Contract (PDF)
+                    </a>
+                  )}
+                  <button onClick={handleReadConversation} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
+                    <MessageSquare size={18} />
+                    Read Conversation
+                  </button>
+                  <button onClick={() => window.location.href = '/dashboard/disputes'} className="px-6 py-2.5 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 shadow-lg shadow-rose-200 transition-all">Support Dispute</button>
+                </>
               )}
-              <button onClick={handleReadConversation} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
-                <MessageSquare size={18} />
-                Read Conversation
-              </button>
-              <button onClick={() => window.location.href = '/dashboard/disputes'} className="px-6 py-2.5 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 shadow-lg shadow-rose-200 transition-all">Support Dispute</button>
             </div>
           </div>
         </div>

@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Activity, Download, CreditCard, Users, Wallet, RefreshCw, ChevronRight, TrendingUp } from "lucide-react"
+import Link from "next/link"
+import { Activity, Download, CreditCard, Users, Wallet, RefreshCw, ChevronRight, TrendingUp, Clock } from "lucide-react"
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { dashboardService } from "@/services/api"
 
@@ -99,6 +100,37 @@ export default function OverviewPage() {
           <span className="text-xs text-slate-400">Dashboard</span>
         </div>
       </div>
+ 
+      {/* Pending Task Approvals Alert Banner */}
+      {Number(stats?.pendingTaskApprovals || stats?.pendingApprovals || 0) > 0 && (
+        <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-50/50 border border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/20 shrink-0">
+              <Clock className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="font-extrabold text-slate-900 text-base">
+                  {stats.pendingTaskApprovals || stats.pendingApprovals} New Task{(stats.pendingTaskApprovals || stats.pendingApprovals) > 1 ? 's' : ''} Awaiting Admin Approval
+                </h4>
+                <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-amber-200">
+                  Action Required
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-0.5">
+                Clients have posted new service requests that require your review and approval before going live to providers.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/jobs/approval"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition-all self-start sm:self-center shrink-0 cursor-pointer"
+          >
+            <span>Review & Approve Tasks</span>
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+      )}
 
       {/* Top 4 Stat Cards */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
