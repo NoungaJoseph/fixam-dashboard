@@ -13,14 +13,17 @@ export default function JobApprovalPage() {
   const [rejectReason, setRejectReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showBanner, setShowBanner] = useState(true)
+  const [error, setError] = useState(null)
 
   async function fetchPendingJobs() {
     try {
       setLoading(true)
+      setError(null)
       const res = await dashboardService.getPendingJobs()
       setJobs(res.data.data || [])
     } catch (err) {
       console.error('Error fetching pending jobs:', err)
+      setError(err.response?.data?.message || 'Failed to load pending tasks. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -78,6 +81,17 @@ export default function JobApprovalPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl flex justify-between items-center shadow-sm">
+          <p className="font-semibold flex items-center gap-2">
+            <span>⚠️</span> {error}
+          </p>
+          <button onClick={fetchPendingJobs} className="px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition">
+            Retry
+          </button>
+        </div>
+      )}
+
       {filteredJobs.length > 0 && showBanner && (
         <div className="bg-amber-100 text-amber-800 px-6 py-4 rounded-xl flex justify-between items-center shadow-sm">
           <p className="font-bold flex items-center gap-2">
