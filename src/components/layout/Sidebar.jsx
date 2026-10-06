@@ -23,7 +23,8 @@ import {
   FileText,
   LogOut,
   GraduationCap,
-  Globe2
+  Globe2,
+  ExternalLink
 } from "lucide-react"
 
 const menuItems = [
@@ -33,6 +34,7 @@ const menuItems = [
   { icon: ShieldCheck, label: "Verifications", href: "/dashboard/verifications" },
   { icon: Briefcase, label: "Jobs", href: "/dashboard/jobs" },
   { icon: AlertCircle, label: "Task Approval", href: "/dashboard/jobs/approval" },
+  { icon: ExternalLink, label: "External Listings", href: "/dashboard/external-jobs" },
   { icon: ShieldAlert, label: "Dispute Center", href: "/dashboard/disputes" },
   { icon: FileText, label: "Service Agreements", href: "/dashboard/agreements" },
   { icon: Wallet, label: "Wallet & Coins", href: "/dashboard/wallet" },

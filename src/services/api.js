@@ -94,6 +94,15 @@ export const dashboardService = {
   resolveDispute: (id, data) => api.post(`/admin/disputes/${id}/resolve`, data),
   getAgreements: (params) => api.get('/admin/agreements', { params }),
   getAgreementDetails: (id) => api.get(`/admin/agreements/${id}`),
+  getExternalJobs: (params) => api.get('/admin/external-jobs', { params }),
+  getExternalJobById: (id) => api.get(`/admin/external-jobs/${id}`),
+  createExternalJob: (data) => api.post('/admin/external-jobs', data),
+  updateExternalJob: (id, data) => api.put(`/admin/external-jobs/${id}`, data),
+  deleteExternalJob: (id) => api.delete(`/admin/external-jobs/${id}`),
+  reverifyExternalJob: (id) => api.post(`/admin/external-jobs/${id}/reverify`),
+  getExternalJobApplications: (params) => api.get('/admin/external-jobs/applications', { params }),
+  getExternalJobSettings: () => api.get('/admin/external-jobs/settings'),
+  updateExternalJobSettings: (data) => api.put('/admin/external-jobs/settings', data),
 };
 
 export default api;
