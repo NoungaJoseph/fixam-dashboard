@@ -64,6 +64,7 @@ export default function ExternalJobsPage() {
     category: "General Service",
     location: "Douala, Cameroon",
     isRemote: false,
+    salaryType: "figure", // "figure" | "undisclosed"
     salary: "",
     source: "",
     description: "",
@@ -142,25 +143,37 @@ export default function ExternalJobsPage() {
   const handleSaveJob = async (e) => {
     e.preventDefault()
 
-    if (!formData.title.trim() || !formData.companyName.trim() || !formData.destinationEmail.trim() || !formData.expiryDate) {
-      toast.error("Please fill in all required fields (Title, Company, Recruiter Email, and Expiry Date).")
+    const cleanDestEmail = formData.destinationEmail.trim().toLowerCase()
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+    if (!formData.title.trim() || !formData.companyName.trim() || !cleanDestEmail || !formData.expiryDate) {
+      toast.error("Please fill in all required fields (Title, Company, Destination Email, and Expiry Date).")
+      return
+    }
+
+    if (!emailRegex.test(cleanDestEmail)) {
+      toast.error("Please provide a valid Destination Application Email address (e.g. careers@company.com).")
       return
     }
 
     try {
       setIsSubmitting(true)
+      const finalSalary = formData.salaryType === "undisclosed"
+        ? (formData.salary?.trim() || "Undisclosed")
+        : (formData.salary?.trim() || null)
+
       const payload = {
-        title: formData.title,
-        companyName: formData.companyName,
-        destinationEmail: formData.destinationEmail,
+        title: formData.title.trim(),
+        companyName: formData.companyName.trim(),
+        destinationEmail: cleanDestEmail,
         expiryDate: formData.expiryDate,
         category: formData.category,
-        location: formData.location,
+        location: formData.location.trim(),
         isRemote: formData.isRemote,
-        salary: formData.salary,
-        source: formData.source,
-        description: formData.description,
-        requirements: formData.requirements
+        salary: finalSalary,
+        source: null,
+        description: formData.description.trim(),
+        requirements: formData.requirements?.trim() || null
       }
 
       if (editingJob) {
@@ -226,6 +239,7 @@ export default function ExternalJobsPage() {
 
   const openEditModal = (job) => {
     setEditingJob(job)
+    const isUndisclosed = !job.salary || ["Undisclosed", "Salary Undisclosed", "Negotiable", "Competitive / Market Rate", "To be discussed"].includes(job.salary)
     setFormData({
       title: job.title || "",
       companyName: job.companyName || "",
@@ -234,8 +248,9 @@ export default function ExternalJobsPage() {
       category: job.category || "General Service",
       location: job.location || "",
       isRemote: Boolean(job.isRemote),
+      salaryType: isUndisclosed ? "undisclosed" : "figure",
       salary: job.salary || "",
-      source: job.source || "",
+      source: "",
       description: job.description || "",
       requirements: job.requirements || "",
       checklist: {
@@ -689,7 +704,7 @@ export default function ExternalJobsPage() {
                     onChange={(e) => setFormData({ ...formData, destinationEmail: e.target.value })}
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none font-mono"
                   />
-                  <span className="text-[10px] text-slate-400">Applications sent by users will be delivered here directly.</span>
+                  <span className="text-[10px] text-emerald-600 font-medium">✓ Direct Delivery: Applications and CVs submitted by users are delivered directly to this mailbox.</span>
                 </div>
 
                 <div>
@@ -739,14 +754,46 @@ export default function ExternalJobsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Compensation / Salary</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 200,000 - 300,000 XAF"
-                    value={formData.salary}
-                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                  />
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">Compensation / Salary</label>
+                    <label className="flex items-center gap-1 cursor-pointer text-[10px] font-semibold text-blue-600 hover:text-blue-700">
+                      <input
+                        type="checkbox"
+                        checked={formData.salaryType === "undisclosed"}
+                        onChange={(e) => {
+                          const isUndisc = e.target.checked
+                          setFormData({
+                            ...formData,
+                            salaryType: isUndisc ? "undisclosed" : "figure",
+                            salary: isUndisc ? (formData.salary && ["Undisclosed", "Negotiable", "Competitive / Market Rate", "To be discussed"].includes(formData.salary) ? formData.salary : "Negotiable") : ""
+                          })
+                        }}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-3 w-3"
+                      />
+                      <span>No figure (Undisclosed)</span>
+                    </label>
+                  </div>
+
+                  {formData.salaryType === "undisclosed" ? (
+                    <select
+                      value={formData.salary || "Negotiable"}
+                      onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-blue-200 bg-blue-50/50 text-blue-900 font-semibold rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                    >
+                      <option value="Negotiable">Negotiable (Négociable)</option>
+                      <option value="Salary Undisclosed">Salary Undisclosed (Non divulgué)</option>
+                      <option value="Competitive / Market Rate">Competitive / Market Rate (Taux compétitif)</option>
+                      <option value="To be discussed">To be discussed (À discuter)</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="e.g. 200,000 - 300,000 XAF"
+                      value={formData.salary}
+                      onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -760,19 +807,6 @@ export default function ExternalJobsPage() {
                   />
                   <span>This is a Fully Remote / Online Role</span>
                 </label>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Source / Verification Origin
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Official Careers Page: https://company.cm/jobs or LinkedIn"
-                  value={formData.source}
-                  onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                />
               </div>
 
               <div>
@@ -927,15 +961,6 @@ export default function ExternalJobsPage() {
                   <h4 className="font-bold text-slate-800 mb-1">Requirements</h4>
                   <div className="text-slate-600 whitespace-pre-wrap leading-relaxed bg-slate-50/50 p-3 rounded-lg border border-slate-100">
                     {selectedJobDetails.requirements}
-                  </div>
-                </div>
-              )}
-
-              {selectedJobDetails.source && (
-                <div>
-                  <h4 className="font-bold text-slate-800 mb-1">Source / Verification Link</h4>
-                  <div className="text-slate-500 font-mono text-[11px] bg-slate-50 p-2 rounded border border-slate-100 break-all">
-                    {selectedJobDetails.source}
                   </div>
                 </div>
               )}
