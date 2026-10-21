@@ -1,113 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Search, Filter, ShieldCheck, XCircle, MoreVertical, Star, FileText } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { CheckCircle2, Clock3, Search, ShieldCheck, Star, Users } from "lucide-react"
 import { dashboardService } from "@/services/api"
 
 export default function ProvidersPage() {
-  const [providers, setProviders] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState("all")
-
-  const fetchProviders = () => {
-    setLoading(true)
-    dashboardService.getProviders()
-      .then(res => {
-        setProviders(res.data.data)
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error(err)
-        setLoading(false)
-      })
-  }
-
-  useEffect(() => {
-    const id = setTimeout(fetchProviders, 0)
-    return () => clearTimeout(id)
-  }, [])
-
-
-
-  if (loading) return <div className="p-8 text-slate-500 font-medium">Loading professional profiles...</div>
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900">Providers</h2>
-          <p className="text-slate-500">View and manage professional service provider accounts.</p>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-slate-200 w-fit rounded-xl">
-        {["all", "verified", "unverified"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all ${
-              activeTab === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Providers Grid */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {providers.filter(p => activeTab === 'all' || (activeTab === 'verified' ? p.verification === 'VERIFIED' : p.verification !== 'VERIFIED')).map((provider) => (
-          <div key={provider.id} className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center border text-slate-400">
-                  <FileText className="h-8 w-8" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">{provider.user?.fullName || 'No Name'}</h3>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {provider.skills?.map(s => (
-                      <span key={s} className="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-0.5 rounded tracking-wider">
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                provider.verification === 'VERIFIED' ? 'bg-emerald-100 text-emerald-700' : 
-                provider.verification === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700'
-              }`}>
-                {provider.verification}
-              </span>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-4">
-              <div className="rounded-xl border bg-slate-50 p-3">
-                <div className="flex items-center gap-2 text-amber-500 mb-1">
-                  <Star className="h-4 w-4 fill-current" />
-                  <span className="text-sm font-bold">{provider.rating}</span>
-                </div>
-                <p className="text-[10px] uppercase font-bold text-slate-400">Average Rating</p>
-              </div>
-              <div className="rounded-xl border bg-slate-50 p-3">
-                <div className="flex items-center gap-2 text-blue-500 mb-1">
-                  <FileText className="h-4 w-4" />
-                  <span className="text-sm font-bold">{provider.documents?.length || 0} Files</span>
-                </div>
-                <p className="text-[10px] uppercase font-bold text-slate-400">Pending Docs</p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button className="p-2.5 border rounded-xl hover:bg-slate-50 transition-colors ml-auto">
-                <MoreVertical className="h-5 w-5 text-slate-400" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+  const [providers, setProviders] = useState([]); const [loading, setLoading] = useState(true); const [activeTab, setActiveTab] = useState("all"); const [query, setQuery] = useState("")
+  useEffect(() => { dashboardService.getProviders().then(res => setProviders(res.data?.data || [])).catch(console.error).finally(() => setLoading(false)) }, [])
+  const totals = useMemo(() => ({ total: providers.length, verified: providers.filter(p => p.verification === "VERIFIED").length, pending: providers.filter(p => p.verification === "PENDING").length }), [providers])
+  const rows = providers.filter(p => (activeTab === "all" || (activeTab === "verified" ? p.verification === "VERIFIED" : p.verification !== "VERIFIED")) && `${p.user?.fullName || ""} ${p.user?.email || ""} ${(p.skills || []).join(" ")}`.toLowerCase().includes(query.toLowerCase()))
+  if (loading) return <div className="p-8 text-sm text-slate-500 animate-pulse">Loading provider profiles…</div>
+  return <main className="max-w-7xl p-6 md:p-8 space-y-8"><header className="border-b border-[#DCE4EE] pb-7"><p className="text-[10px] font-black uppercase tracking-[.16em] text-[#D95E57]">Service network</p><h1 className="mt-2 text-3xl font-black text-[#081B3A]">Providers</h1><p className="mt-2 text-sm text-slate-500">Open a provider to review their contact details, bio, projects, credentials, and customer feedback.</p></header><section className="grid border-y border-[#DCE4EE] md:grid-cols-3">{[[Users, "Total providers", totals.total], [CheckCircle2, "Verified providers", totals.verified], [Clock3, "Awaiting review", totals.pending]].map(([Icon, label, value], index) => <div key={label} className={`p-5 ${index < 2 ? "border-r border-[#DCE4EE]" : ""}`}><Icon className="h-4 w-4 text-[#D95E57]" /><p className="mt-4 text-[10px] font-black uppercase tracking-[.12em] text-slate-400">{label}</p><p className="mt-1 text-3xl font-black text-[#081B3A]">{value}</p></div>)}</section><section><div className="flex flex-col gap-4 border-b border-[#DCE4EE] pb-4 md:flex-row md:items-center md:justify-between"><div className="flex gap-1">{[["all", "All"], ["verified", "Verified"], ["unverified", "Needs review"]].map(([key, label]) => <button key={key} onClick={() => setActiveTab(key)} className={`rounded-lg px-3 py-2 text-xs font-black ${activeTab === key ? "bg-[#081B3A] text-white" : "text-slate-500 hover:bg-slate-100"}`}>{label}</button>)}</div><label className="relative"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" /><input value={query} onChange={e => setQuery(e.target.value)} placeholder="Search providers" className="w-full pl-9 md:w-64" /></label></div><div className="divide-y divide-[#DCE4EE]">{rows.map(provider => <Link href={`/dashboard/users/${provider.userId}`} key={provider.id} className="group grid gap-3 py-4 hover:bg-white md:grid-cols-[minmax(220px,1.4fr)_minmax(180px,1fr)_120px_105px]"><div><p className="font-black text-[#081B3A] group-hover:text-[#D95E57]">{provider.user?.fullName || "Unnamed provider"}</p><p className="mt-1 text-xs text-slate-500">{provider.user?.phone || provider.user?.email || "No contact listed"}</p></div><p className="self-center text-xs text-slate-600">{provider.skills?.length ? provider.skills.join(", ") : "No skills listed"}</p><p className="self-center text-xs font-bold text-slate-700"><Star className="mr-1 inline h-3.5 w-3.5 text-[#D95E57]" />{provider.rating || 0} ({provider.reviewCount || 0})</p><span className={`self-center w-fit rounded-full px-2.5 py-1 text-[10px] font-black ${provider.verification === "VERIFIED" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{provider.verification || "UNVERIFIED"}</span></Link>)}{rows.length === 0 && <p className="py-10 text-sm text-slate-500">No providers match this view.</p>}</div></section></main>
 }

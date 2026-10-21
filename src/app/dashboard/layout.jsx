@@ -74,7 +74,7 @@ export default function DashboardLayout({ children }) {
   }, [isConnected, on])
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC]">
+    <div className="flex h-screen bg-[#F7F8FB]">
       <Sidebar collapsed={sidebarCollapsed} />
       
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -90,13 +90,13 @@ export default function DashboardLayout({ children }) {
               ⚠️ WEBSITE MAINTENANCE MODE IS ACTIVE — The website is locked
             </div>
           )}
-          <div className="flex h-[72px] items-center justify-between px-6 border-b border-[#E2E8F0]">
+          <div className="flex h-[54px] items-center justify-between px-6 border-b border-[#E2E8F0] bg-white">
             <div className="flex items-center gap-4 flex-1">
-              <button onClick={() => setSidebarCollapsed((value) => !value)} className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={() => setSidebarCollapsed((value) => !value)} className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors">
                 <PanelLeftOpen className="h-5 w-5" />
               </button>
               
-              <div className="hidden h-10 w-96 items-center gap-3 rounded-lg bg-slate-100/80 px-4 md:flex border border-slate-200">
+              <div className="hidden h-9 w-96 items-center gap-3 rounded-lg bg-[#F5F7FA] px-4 md:flex border border-[#E7EBF0]">
                 <Search className="h-4 w-4 text-slate-400" />
                 <input 
                   type="text" 
@@ -106,17 +106,17 @@ export default function DashboardLayout({ children }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Link 
                 href="/dashboard/messages" 
-                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                className="relative p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                 title="Support & User Messages"
               >
                 <MessagesSquare className="h-[20px] w-[20px]" />
               </Link>
               <Link 
                 href="/dashboard/jobs/approval" 
-                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                className="relative p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                 title={pendingApprovals > 0 ? `${pendingApprovals} task(s) awaiting approval` : "Pending Task Approvals"}
               >
                 <Bell className="h-[20px] w-[20px]" />
@@ -128,25 +128,25 @@ export default function DashboardLayout({ children }) {
               </Link>
               <Link 
                 href="/dashboard/disputes" 
-                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                className="relative p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                 title="Disputes Management"
               >
                 <AlertCircle className="h-[20px] w-[20px]" />
               </Link>
               <Link 
                 href="/dashboard/settings" 
-                className="relative p-2 text-slate-400 hover:text-slate-600 transition-colors"
+                className="relative p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
                 title="System Settings"
               >
                 <Settings className="h-[20px] w-[20px]" />
               </Link>
               
-              <div className="h-6 w-px bg-slate-200 mx-2"></div>
+              <div className="h-6 w-px bg-slate-200 mx-3"></div>
               
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">
-                  <p className="text-[11px] font-black tracking-widest text-slate-900 uppercase">Fixam OS Core</p>
-                  <p className="text-[10px] text-slate-500 font-medium tracking-wide">SERVER: EST-US-01 <span className="text-[#0D9488]">(ACTIVE)</span></p>
+                  <p className="text-[11px] font-black tracking-wide text-[#081B3A] uppercase">Fixam control</p>
+                  <p className="text-[10px] text-slate-500 font-medium tracking-wide">SYSTEM <span className="text-emerald-600">● LIVE</span></p>
                 </div>
               </div>
             </div>
@@ -154,8 +154,10 @@ export default function DashboardLayout({ children }) {
         </header>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto bg-[#F8FAFC]">
-          {children}
+        <main className="flex-1 overflow-y-auto bg-[#F7F8FB]">
+          <div className="admin-page-shell min-h-full">
+            {children}
+          </div>
         </main>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Activity, Download, CreditCard, Users, Wallet, RefreshCw, ChevronRight, TrendingUp, Clock } from "lucide-react"
+import { Activity, CreditCard, Users, RefreshCw, ChevronRight, TrendingUp, Clock, ArrowUpRight } from "lucide-react"
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { dashboardService } from "@/services/api"
 
@@ -87,23 +87,26 @@ export default function OverviewPage() {
   ]
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Top Welcome */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <div className="max-w-[1440px] mx-auto p-5 md:p-8 space-y-6 animate-in fade-in duration-500">
+      <section className="grid gap-8 border-b border-[#DCE4EE] pb-8 lg:grid-cols-[1fr_250px] lg:items-start">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800">Hi, Admin</h2>
-          <p className="text-sm text-slate-500">Welcome to your dashboard overview</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#D95E57]">Admin workspace</p>
+          <h1 className="mt-2 text-4xl font-black tracking-[-0.055em] text-[#081B3A] md:text-5xl">Protect every move.</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#597297]">Manage activity, review marketplace quality, and keep the Fixam community moving safely.</p>
+          <div className="mt-6 flex flex-wrap gap-4">
+            <Link href="/dashboard/jobs/approval" className="inline-flex items-center gap-2 text-xs font-black text-[#081B3A] hover:text-[#D95E57]">Review pending work <ArrowUpRight className="h-4 w-4" /></Link>
+            <Link href="/dashboard/external-jobs" className="inline-flex items-center gap-2 text-xs font-black text-[#081B3A] hover:text-[#D95E57]">Manage job listings <ArrowUpRight className="h-4 w-4" /></Link>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-500">Overview</span>
-          <span className="text-slate-300">/</span>
-          <span className="text-xs text-slate-400">Dashboard</span>
+        <div className="flex items-center gap-4 lg:justify-end">
+          <div className="grid h-24 w-24 place-items-center rounded-full border-[7px] border-[#F57B72] bg-white text-center shadow-[0_14px_32px_-22px_rgba(8,27,58,0.6)]"><span className="text-2xl font-black text-[#081B3A]">{stats?.activeJobs || 0}</span></div>
+          <div><p className="text-xs font-black text-[#597297]">Active jobs</p><p className="mt-1 text-xs leading-5 text-slate-500">under marketplace review</p></div>
         </div>
-      </div>
+      </section>
  
       {/* Pending Task Approvals Alert Banner */}
       {Number(stats?.pendingTaskApprovals || stats?.pendingApprovals || 0) > 0 && (
-        <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-50/50 border border-amber-300 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
+        <div className="bg-[#FFF7E7] border border-[#F4D9A5] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/20 shrink-0">
               <Clock className="h-6 w-6" />
@@ -113,7 +116,7 @@ export default function OverviewPage() {
                 <h4 className="font-extrabold text-slate-900 text-base">
                   {stats.pendingTaskApprovals || stats.pendingApprovals} New Task{(stats.pendingTaskApprovals || stats.pendingApprovals) > 1 ? 's' : ''} Awaiting Admin Approval
                 </h4>
-                <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-amber-200">
+                <span className="bg-white/80 text-[#A95D00] text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border border-amber-200">
                   Action Required
                 </span>
               </div>
@@ -124,7 +127,7 @@ export default function OverviewPage() {
           </div>
           <Link
             href="/dashboard/jobs/approval"
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition-all self-start sm:self-center shrink-0 cursor-pointer"
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#081B3A] hover:bg-[#102A51] text-white font-bold text-xs rounded-xl shadow-md transition-all self-start sm:self-center shrink-0 cursor-pointer"
           >
             <span>Review & Approve Tasks</span>
             <ChevronRight className="h-4 w-4" />
@@ -133,19 +136,19 @@ export default function OverviewPage() {
       )}
 
       {/* Top 4 Stat Cards */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid border-y border-[#DCE4EE] sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card, idx) => {
           const Icon = card.icon
           return (
-            <div key={idx} className="rounded-2xl bg-white p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 flex flex-col justify-between">
+            <div key={idx} className="min-h-[150px] p-5 first:pl-0 sm:border-r sm:border-[#DCE4EE] last:border-r-0 flex flex-col justify-between">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">{card.title}</span>
-                <div className={`p-2.5 rounded-xl ${card.bg}`}>
+                <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{card.title}</span>
+                <div className={`p-2 ${card.bg}`}>
                   <Icon className={`h-4 w-4 ${card.color}`} />
                 </div>
               </div>
               <div>
-                <p className="text-2xl font-black tracking-tight text-slate-800">{card.value}</p>
+                <p className="text-2xl font-black tracking-[-0.04em] text-[#081B3A]">{card.value}</p>
                 <p className="text-xs font-medium text-slate-400 mt-1">{card.sub}</p>
               </div>
             </div>
@@ -154,9 +157,9 @@ export default function OverviewPage() {
       </div>
 
       {/* Middle Grid: Platform Breakdown + Activity Chart */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-8 lg:grid-cols-[1.2fr_2fr]">
         {/* Left Column: Platform Users Breakdown */}
-        <div className="rounded-2xl bg-white p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 flex flex-col justify-between">
+        <div className="border-t border-[#DCE4EE] pt-5 flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <h3 className="text-[15px] font-bold text-slate-700">Platform Users Breakdown</h3>
           </div>
@@ -184,7 +187,7 @@ export default function OverviewPage() {
         </div>
 
         {/* Activity Chart */}
-        <div className="lg:col-span-2 rounded-2xl bg-white p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100">
+        <div className="border-t border-[#DCE4EE] pt-5">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-slate-600" />

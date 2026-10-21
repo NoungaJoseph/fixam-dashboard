@@ -73,6 +73,16 @@ export default function VerificationsPage() {
     }
   }
 
+  const openDocument = async (documentId) => {
+    try {
+      const response = await dashboardService.getVerificationDocumentUrl(documentId)
+      window.open(response.data.data.url, "_blank", "noopener,noreferrer")
+    } catch (error) {
+      console.error("Could not open verification document:", error)
+      toast.error("This document could not be opened. It may no longer exist in storage.")
+    }
+  }
+
   const submitRejection = () => {
     const finalReason = rejectReason === "Other" ? customReason : rejectReason;
     if (!finalReason.trim()) {
@@ -154,10 +164,10 @@ export default function VerificationsPage() {
                 <div className="space-y-2">
                   {provider.documents && provider.documents.length > 0 ? (
                     provider.documents.map((doc) => (
-                      <a key={doc.id} href={doc.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:text-blue-700 shadow-sm border border-slate-100">
+                      <button key={doc.id} type="button" onClick={() => openDocument(doc.id)} className="flex w-full items-center justify-between rounded-lg bg-white px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:text-blue-700 shadow-sm border border-slate-100">
                         <span className="truncate">{doc.type.replace('_', ' ').toUpperCase()}</span>
                         <FileText className="h-4 w-4 shrink-0 ml-2" />
-                      </a>
+                      </button>
                     ))
                   ) : (
                     <div className="text-center text-sm text-slate-400 py-2">No documents uploaded</div>

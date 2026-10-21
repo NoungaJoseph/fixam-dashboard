@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ExternalLink,
   Briefcase,
@@ -30,7 +32,19 @@ import {
 import { dashboardService } from "@/services/api"
 import { toast } from "sonner"
 
+const DETAIL_SECTIONS = [
+  { key: "description", label: "Job overview", required: true, placeholder: "Describe the role, team, and the work to be done..." },
+  { key: "responsibilities", label: "Responsibilities", placeholder: "Use one line per responsibility..." },
+  { key: "requirements", label: "Requirements", placeholder: "Qualifications, certifications, and experience..." },
+  { key: "skills", label: "Skills", placeholder: "Use one line per skill or competency..." },
+  { key: "benefits", label: "Benefits", placeholder: "Salary extras, leave, equipment, or other benefits..." },
+  { key: "applicationNotes", label: "Application notes", placeholder: "Portfolio, documents, deadline, or interview instructions..." }
+]
+
+const emptyDetailContent = () => Object.fromEntries(DETAIL_SECTIONS.map(({ key }) => [key, ""]))
+
 export default function ExternalJobsPage() {
+  const router = useRouter()
   const [jobs, setJobs] = useState([])
   const [stats, setStats] = useState({
     totalAll: 0,
@@ -69,6 +83,8 @@ export default function ExternalJobsPage() {
     source: "",
     description: "",
     requirements: "",
+    selectedDetails: { description: true, requirements: true },
+    detailContent: emptyDetailContent(),
     checklist: {
       noUpfrontPayment: false,
       legitCompanyPresence: false,
@@ -162,6 +178,18 @@ export default function ExternalJobsPage() {
         ? (formData.salary?.trim() || "Undisclosed")
         : (formData.salary?.trim() || null)
 
+      const detailContent = formData.detailContent || emptyDetailContent()
+      const details = DETAIL_SECTIONS
+        .filter(section => formData.selectedDetails?.[section.key] && detailContent[section.key]?.trim())
+        .map(section => ({ key: section.key, label: section.label, content: detailContent[section.key].trim() }))
+      const overview = detailContent.description?.trim() || formData.description.trim()
+      const requirements = detailContent.requirements?.trim() || formData.requirements?.trim() || null
+
+      if (!overview) {
+        toast.error("Please add a job overview before publishing.")
+        return
+      }
+
       const payload = {
         title: formData.title.trim(),
         companyName: formData.companyName.trim(),
@@ -172,8 +200,9 @@ export default function ExternalJobsPage() {
         isRemote: formData.isRemote,
         salary: finalSalary,
         source: null,
-        description: formData.description.trim(),
-        requirements: formData.requirements?.trim() || null
+        description: overview,
+        requirements,
+        details
       }
 
       if (editingJob) {
@@ -253,6 +282,17 @@ export default function ExternalJobsPage() {
       source: "",
       description: job.description || "",
       requirements: job.requirements || "",
+      selectedDetails: {
+        description: true,
+        requirements: Boolean(job.requirements),
+        ...(Object.fromEntries((Array.isArray(job.details) ? job.details : []).map(item => [item.key, true]))),
+      },
+      detailContent: {
+        ...emptyDetailContent(),
+        description: job.description || "",
+        requirements: job.requirements || "",
+        ...(Object.fromEntries((Array.isArray(job.details) ? job.details : []).map(item => [item.key, item.content || ""]))),
+      },
       checklist: {
         noUpfrontPayment: true,
         legitCompanyPresence: true,
@@ -297,17 +337,13 @@ export default function ExternalJobsPage() {
             <span>Reminder: {recheckDays}d</span>
           </button>
 
-          <button
-            onClick={() => {
-              setEditingJob(null)
-              setFormData(initialFormState)
-              setIsCreateModalOpen(true)
-            }}
+          <Link
+            href="/dashboard/external-jobs/new"
             className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition shadow-sm shadow-blue-500/30"
           >
             <Plus className="h-4 w-4" />
             <span>Create Listing</span>
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -606,7 +642,7 @@ export default function ExternalJobsPage() {
                           )}
 
                           <button
-                            onClick={() => setSelectedJobDetails(job)}
+                            onClick={() => router.push(`/dashboard/external-jobs/${job.id}`)}
                             className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded transition"
                             title="View Details"
                           >
@@ -614,7 +650,7 @@ export default function ExternalJobsPage() {
                           </button>
 
                           <button
-                            onClick={() => openEditModal(job)}
+                            onClick={() => router.push(`/dashboard/external-jobs/${job.id}/edit`)}
                             className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded transition"
                             title="Edit Listing"
                           >
@@ -809,29 +845,43 @@ export default function ExternalJobsPage() {
                 </label>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Job Description <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Comprehensive description of responsibilities and scope..."
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Requirements</label>
-                <textarea
-                  rows={2}
-                  placeholder="Qualifications, certifications, years of experience required..."
-                  value={formData.requirements}
-                  onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                />
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <div>
+                  <p className="text-sm font-bold text-slate-900">Job details to show applicants</p>
+                  <p className="text-xs text-slate-500 mt-1">Choose the sections for this role. A writing field appears for each selected section; paragraphs and bullet lists are kept exactly as entered.</p>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {DETAIL_SECTIONS.map((section) => {
+                    const checked = Boolean(formData.selectedDetails?.[section.key])
+                    return (
+                      <label key={section.key} className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold cursor-pointer transition ${checked ? "border-blue-300 bg-blue-50 text-blue-800" : "border-slate-200 bg-white text-slate-600"}`}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={section.required}
+                          onChange={(e) => setFormData({ ...formData, selectedDetails: { ...formData.selectedDetails, [section.key]: e.target.checked } })}
+                          className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        {section.label}{section.required ? " *" : ""}
+                      </label>
+                    )
+                  })}
+                </div>
+                <div className="space-y-3 pt-1">
+                  {DETAIL_SECTIONS.filter(section => formData.selectedDetails?.[section.key]).map((section) => (
+                    <div key={section.key}>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">{section.label}{section.required ? <span className="text-red-500"> *</span> : null}</label>
+                      <textarea
+                        rows={section.key === "description" ? 4 : 3}
+                        required={section.required}
+                        placeholder={section.placeholder}
+                        value={formData.detailContent?.[section.key] || ""}
+                        onChange={(e) => setFormData({ ...formData, detailContent: { ...formData.detailContent, [section.key]: e.target.value } })}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none resize-y"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Red-Flag Checklist */}

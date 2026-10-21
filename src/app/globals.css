@@ -20,18 +20,75 @@
   --color-border: hsl(214 32% 91%);
   --color-input: hsl(214 32% 91%);
   --color-ring: hsl(222 47% 11%);
-  --radius-xl: 0;
+  --radius-xl: 1rem;
 }
 
 @layer base {
   *, ::after, ::before {
     border-color: var(--color-border);
-    border-radius: 0 !important;
+    border-radius: inherit;
   }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Shared admin workspace language: pages breathe on the canvas; only important
+   actions, tables, and decision panels receive a contained surface. */
+@layer components {
+  .admin-page-shell {
+    color: #162744;
+    padding: 0 1.25rem 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .admin-page-shell {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  .admin-page-shell [class*="shadow-"] {
+    box-shadow: none !important;
+  }
+
+  .admin-page-shell [class~="bg-white"][class*="rounded"] {
+    border-color: #dce4ee;
+  }
+
+  .admin-page-shell h1,
+  .admin-page-shell h2,
+  .admin-page-shell h3 {
+    color: #081b3a;
+    letter-spacing: -0.025em;
+  }
+
+  .admin-page-shell input,
+  .admin-page-shell select,
+  .admin-page-shell textarea {
+    border-color: #d5dfeb;
+    background: #fffdfb;
+  }
+
+  .admin-page-shell input:not([type="checkbox"]),
+  .admin-page-shell select,
+  .admin-page-shell textarea {
+    width: 100%;
+    border-width: 1px;
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    outline: none;
+  }
+
+  .admin-page-shell input:focus,
+  .admin-page-shell select:focus,
+  .admin-page-shell textarea:focus {
+    border-color: #e8756c;
+    box-shadow: 0 0 0 3px rgba(232, 117, 108, 0.12);
   }
 }

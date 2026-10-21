@@ -19,6 +19,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsersCount, setTotalUsersCount] = useState(0)
+  // Kept for legacy action handlers; profiles now open on their own route.
   const [selectedUser, setSelectedUser] = useState(null)
   const [statusLoading, setStatusLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -58,14 +59,7 @@ export default function UsersPage() {
     fetchUsers()
   }, [fetchUsers])
 
-  const openUser = async (id) => {
-    try {
-      const res = await dashboardService.getUserDetails(id)
-      setSelectedUser(res.data?.data || null)
-    } catch (error) {
-      toast.error("Could not load user profile details")
-    }
-  }
+  const openUser = (id) => router.push(`/dashboard/users/${id}`)
 
   const toggleBlock = async (user) => {
     const reason = user.isBlocked ? "" : window.prompt("Reason for blocking this user?", "Account under review / Terms violation")
@@ -75,7 +69,6 @@ export default function UsersPage() {
       await dashboardService.updateUserStatus(user.id, { isBlocked: !user.isBlocked, reason })
       toast.success(user.isBlocked ? "User restored successfully" : "User blocked successfully")
       await fetchUsers()
-      if (selectedUser?.id === user.id) await openUser(user.id)
     } catch (error) {
       toast.error("Could not update user status")
     } finally {
@@ -87,7 +80,6 @@ export default function UsersPage() {
     try {
       const res = await dashboardService.createConversation({ participantId: user.id })
       const conversation = res.data?.data
-      setSelectedUser(null)
       if (conversation?.id) {
         router.push(`/dashboard/messages?conversationId=${conversation.id}`)
       } else {
@@ -287,7 +279,7 @@ export default function UsersPage() {
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr key={user.id} onClick={() => openUser(user.id)} className="hover:bg-slate-50/60 transition-colors cursor-pointer">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {user.avatar ? (
@@ -333,7 +325,7 @@ export default function UsersPage() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-1.5">
                         <button 
-                          onClick={() => openUser(user.id)} 
+                          onClick={(event) => { event.stopPropagation(); openUser(user.id) }} 
                           className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 hover:text-slate-800 transition-colors" 
                           title="View Full Profile"
                         >
@@ -341,7 +333,7 @@ export default function UsersPage() {
                         </button>
                         <button 
                           disabled={statusLoading} 
-                          onClick={() => toggleBlock(user)} 
+                          onClick={(event) => { event.stopPropagation(); toggleBlock(user) }} 
                           className={`p-2 hover:bg-slate-100 rounded-xl transition-colors ${
                             user.isBlocked ? 'text-emerald-600 hover:text-emerald-800' : 'text-red-500 hover:text-red-700'
                           }`} 

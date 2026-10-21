@@ -81,24 +81,25 @@ export function Sidebar({ collapsed = false }) {
   }, [])
 
   return (
-    <div className={`${collapsed ? "w-20" : "w-[260px]"} flex h-full flex-col bg-[#F8FAFC] text-slate-700 border-r border-[#E2E8F0] transition-all duration-200`}>
-      <div className="flex h-[76px] items-center px-5 border-b border-slate-100">
+    <div className={`${collapsed ? "w-20" : "w-[260px]"} flex h-full flex-col bg-[#FFFCFA] text-slate-700 border-r border-[#EDE5DF] transition-all duration-200`}>
+      <div className="flex h-[54px] items-center px-5 border-b border-[#EDE5DF]">
         <Link href="/dashboard" className="flex items-center gap-3">
           <img 
             src="/logo.png" 
             alt="Fixam Pro Control Panel" 
-            className="h-10 w-10 rounded-full object-cover shadow-sm ring-2 ring-blue-500/20 shrink-0" 
+            className="h-8 w-8 rounded-lg object-cover shadow-sm ring-2 ring-[#FF877B]/20 shrink-0" 
           />
           {!collapsed && (
             <div className="flex flex-col overflow-hidden">
-              <span className="text-[14px] font-black tracking-tight text-slate-800 leading-none">FIXAM PRO</span>
-              <span className="text-[9px] font-extrabold tracking-widest text-blue-600 uppercase mt-0.5">Control Panel</span>
+              <span className="text-[13px] font-black tracking-tight text-[#081B3A] leading-none">FIXAM</span>
+              <span className="text-[9px] font-bold tracking-[0.14em] text-[#D95E57] uppercase mt-0.5">Admin workspace</span>
             </div>
           )}
         </Link>
       </div>
       
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      {!collapsed && <p className="px-5 pt-5 pb-2 text-[10px] font-black tracking-[0.16em] text-[#B28A7A] uppercase">Workspace</p>}
+      <div className="flex-1 overflow-y-auto py-2 px-3 space-y-1">
         {menuItems.map((item) => {
           let badge = 0
           if (item.label === "Messages") badge = unreadMessages
@@ -118,18 +119,18 @@ export function Sidebar({ collapsed = false }) {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 px-3 py-[10px] rounded-lg text-[13px] font-medium transition-all",
+              "flex items-center gap-3 px-3 py-[10px] rounded-xl text-[13px] font-semibold transition-all",
               collapsed && "justify-center",
               isActive 
-                ? "bg-[#1E293B] text-white shadow-sm" 
-                : "text-slate-600 hover:bg-slate-200/50 hover:text-slate-900"
+                ? "bg-[#FBE0D8] text-[#9D3E38] shadow-sm shadow-[#E8836D]/10 border-l-[3px] border-[#E96F66]" 
+                : "text-slate-600 hover:bg-[#FFF1EC] hover:text-[#081B3A]"
             )}
             title={collapsed ? item.label : undefined}
           >
-            <item.icon className={cn("h-[18px] w-[18px]", isActive ? "text-white" : "text-slate-500")} strokeWidth={isActive ? 2.5 : 2} />
-            {!collapsed && <span className="tracking-wide uppercase">{item.label}</span>}
+            <item.icon className={cn("h-[18px] w-[18px]", isActive ? "text-[#D95E57]" : "text-slate-500")} strokeWidth={isActive ? 2.5 : 2} />
+            {!collapsed && <span>{item.label}</span>}
             {!collapsed && badge > 0 && (
-              <span className={cn("ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold", isActive ? "bg-white/20 text-white" : "bg-red-100 text-red-600")}>
+              <span className={cn("ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold", isActive ? "bg-white/80 text-[#9D3E38]" : "bg-red-100 text-red-600")}>
                 {badge > 99 ? "99+" : badge}
               </span>
             )}
@@ -137,9 +138,9 @@ export function Sidebar({ collapsed = false }) {
         )})}
       </div>
 
-      <div className="p-4 mt-auto">
-        <div className={cn("flex items-center gap-3 p-3 rounded-xl transition-colors", collapsed && "justify-center")}>
-          <div className="h-9 w-9 bg-slate-200 flex items-center justify-center font-bold text-slate-600 text-sm shrink-0">
+      <div className="p-4 mt-auto border-t border-[#EDE5DF]">
+        <div className={cn("flex items-center gap-3 p-3 rounded-2xl bg-[#FFF5F1] border border-[#F2D5CB] transition-colors", collapsed && "justify-center")}>
+          <div className="h-9 w-9 rounded-xl bg-[#081B3A] flex items-center justify-center font-bold text-white text-sm shrink-0">
             FC
           </div>
           {!collapsed && (

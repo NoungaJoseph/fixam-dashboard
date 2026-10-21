@@ -56,6 +56,7 @@ export const dashboardService = {
   getUserDetails: (id) => api.get(`/admin/users/${id}`),
   updateUserStatus: (id, data) => api.put(`/admin/users/${id}/status`, data),
   getProviders: () => api.get('/admin/providers'),
+  getVerificationDocumentUrl: (documentId) => api.get(`/admin/verification-documents/${documentId}/url`),
   verifyProvider: (data) => api.post('/admin/verify-provider', data),
   approveTransaction: (data) => api.post('/admin/approve-transaction', data),
   getPendingTransactions: () => api.get('/admin/pending-transactions'),
