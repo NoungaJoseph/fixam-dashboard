@@ -42,6 +42,8 @@ const DETAIL_SECTIONS = [
 ]
 
 const emptyDetailContent = () => Object.fromEntries(DETAIL_SECTIONS.map(({ key }) => [key, ""]))
+const QUESTION_TYPES = ["YES_NO", "CHECKBOX", "SHORT_TEXT", "LONG_TEXT", "NUMBER", "DATE", "SINGLE_CHOICE", "MULTI_CHOICE"]
+const makeQuestion = () => ({ id: `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, prompt: "", type: "YES_NO", required: false, options: [] })
 
 export default function ExternalJobsPage() {
   const router = useRouter()
@@ -76,6 +78,8 @@ export default function ExternalJobsPage() {
     destinationEmail: "",
     expiryDate: "",
     category: "General Service",
+    country: "Cameroon",
+    currency: "XAF",
     location: "Douala, Cameroon",
     isRemote: false,
     salaryType: "figure", // "figure" | "undisclosed"
@@ -85,6 +89,7 @@ export default function ExternalJobsPage() {
     requirements: "",
     selectedDetails: { description: true, requirements: true },
     detailContent: emptyDetailContent(),
+    applicationQuestions: [],
     checklist: {
       noUpfrontPayment: false,
       legitCompanyPresence: false,
@@ -196,13 +201,16 @@ export default function ExternalJobsPage() {
         destinationEmail: cleanDestEmail,
         expiryDate: formData.expiryDate,
         category: formData.category,
-        location: formData.location.trim(),
+        country: formData.country,
+        currency: formData.currency,
+        location: formData.isRemote ? "Remote" : formData.location.trim(),
         isRemote: formData.isRemote,
         salary: finalSalary,
         source: null,
         description: overview,
         requirements,
-        details
+        details,
+        applicationQuestions: formData.applicationQuestions
       }
 
       if (editingJob) {
@@ -275,6 +283,8 @@ export default function ExternalJobsPage() {
       destinationEmail: job.destinationEmail || "",
       expiryDate: job.expiryDate ? new Date(job.expiryDate).toISOString().split("T")[0] : "",
       category: job.category || "General Service",
+      country: job.country || "Cameroon",
+      currency: job.currency || "XAF",
       location: job.location || "",
       isRemote: Boolean(job.isRemote),
       salaryType: isUndisclosed ? "undisclosed" : "figure",
@@ -293,6 +303,7 @@ export default function ExternalJobsPage() {
         requirements: job.requirements || "",
         ...(Object.fromEntries((Array.isArray(job.details) ? job.details : []).map(item => [item.key, item.content || ""]))),
       },
+      applicationQuestions: Array.isArray(job.applicationQuestions) ? job.applicationQuestions : [],
       checklist: {
         noUpfrontPayment: true,
         legitCompanyPresence: true,
@@ -489,6 +500,17 @@ export default function ExternalJobsPage() {
                         <div className="font-semibold text-slate-900">{app.applicantName}</div>
                         <div className="text-[11px] text-slate-500">{app.applicantEmail}</div>
                         {app.applicantPhone && <div className="text-[10px] text-slate-400">{app.applicantPhone}</div>}
+                        {Array.isArray(app.job?.applicationQuestions) && app.job.applicationQuestions.length > 0 && (
+                          <details className="mt-2 max-w-sm">
+                            <summary className="cursor-pointer text-[11px] font-semibold text-teal-700">View screening answers</summary>
+                            <div className="mt-2 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-2">
+                              {app.job.applicationQuestions.map((question) => {
+                                const answer = app.screeningAnswers?.[question.id]
+                                return <div key={question.id}><div className="font-semibold text-slate-700">{question.prompt}</div><div className="text-slate-600 whitespace-pre-wrap">{Array.isArray(answer) ? answer.join(", ") : answer === true ? "Yes" : answer === false ? "No" : (answer ?? "—")}</div></div>
+                              })}
+                            </div>
+                          </details>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <div className="font-medium text-slate-800">{app.job?.title || "Unknown Job"}</div>
@@ -758,7 +780,7 @@ export default function ExternalJobsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
                   <select
@@ -779,11 +801,19 @@ export default function ExternalJobsPage() {
                 </div>
 
                 <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Country</label>
+                  <select value={formData.country} onChange={(e) => { const currencies = { Cameroon: "XAF", Nigeria: "NGN", "Ivory Coast": "XOF", Ghana: "GHS", Senegal: "XOF", Kenya: "KES", Uganda: "UGX", Tanzania: "TZS", Rwanda: "RWF", "South Africa": "ZAR", Egypt: "EGP" }; setFormData({ ...formData, country: e.target.value, currency: currencies[e.target.value] || "XAF" }) }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg">
+                    {Object.keys({ Cameroon: 1, Nigeria: 1, "Ivory Coast": 1, Ghana: 1, Senegal: 1, Kenya: 1, Uganda: 1, Tanzania: 1, Rwanda: 1, "South Africa": 1, Egypt: 1 }).map(country => <option key={country}>{country}</option>)}
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Location</label>
                   <input
                     type="text"
                     placeholder="e.g. Douala / Yaoundé"
-                    value={formData.location}
+                    value={formData.isRemote ? "Remote" : formData.location}
+                    disabled={formData.isRemote}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   />
@@ -882,6 +912,20 @@ export default function ExternalJobsPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="rounded-xl border border-teal-200 bg-teal-50/40 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div><p className="text-sm font-bold text-slate-900">Application screening questions</p><p className="text-xs text-slate-500 mt-1">Optional questions candidates must answer before their application is sent.</p></div>
+                  <button type="button" onClick={() => setFormData({ ...formData, applicationQuestions: [...formData.applicationQuestions, makeQuestion()] })} className="px-3 py-2 rounded-lg bg-teal-600 text-white text-xs font-bold">+ Add question</button>
+                </div>
+                {formData.applicationQuestions.map((question, index) => (
+                  <div key={question.id} className="rounded-lg border border-slate-200 bg-white p-3 space-y-2">
+                    <div className="flex gap-2"><input value={question.prompt} onChange={(e) => setFormData({ ...formData, applicationQuestions: formData.applicationQuestions.map((item, i) => i === index ? { ...item, prompt: e.target.value } : item) })} placeholder={`Question ${index + 1}`} className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg" /><button type="button" onClick={() => setFormData({ ...formData, applicationQuestions: formData.applicationQuestions.filter((_, i) => i !== index) })} className="text-red-600"><Trash2 className="h-4 w-4" /></button></div>
+                    <div className="flex flex-wrap gap-2"><select value={question.type} onChange={(e) => { const type = e.target.value; setFormData({ ...formData, applicationQuestions: formData.applicationQuestions.map((item, i) => i === index ? { ...item, type, options: ["SINGLE_CHOICE", "MULTI_CHOICE"].includes(type) ? (item.options?.length ? item.options : ["", ""]) : [] } : item) }) }} className="px-3 py-2 text-xs border border-slate-300 rounded-lg">{QUESTION_TYPES.map((type) => <option key={type} value={type}>{type.replaceAll("_", " ")}</option>)}</select><label className="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" checked={question.required} onChange={(e) => setFormData({ ...formData, applicationQuestions: formData.applicationQuestions.map((item, i) => i === index ? { ...item, required: e.target.checked } : item) })} /> Required</label></div>
+                    {["SINGLE_CHOICE", "MULTI_CHOICE"].includes(question.type) && <div className="space-y-2">{(question.options || []).map((option, optionIndex) => <div key={optionIndex} className="flex gap-2"><input value={option} onChange={(e) => setFormData({ ...formData, applicationQuestions: formData.applicationQuestions.map((item, i) => i === index ? { ...item, options: item.options.map((entry, oi) => oi === optionIndex ? e.target.value : entry) } : item) })} placeholder={`Option ${optionIndex + 1}`} className="flex-1 px-3 py-2 text-xs border border-slate-300 rounded-lg" /><button type="button" onClick={() => setFormData({ ...formData, applicationQuestions: formData.applicationQuestions.map((item, i) => i === index ? { ...item, options: item.options.filter((_, oi) => oi !== optionIndex) } : item) })} className="text-red-500">×</button></div>)}<button type="button" onClick={() => setFormData({ ...formData, applicationQuestions: formData.applicationQuestions.map((item, i) => i === index ? { ...item, options: [...item.options, ""] } : item) })} className="text-xs font-bold text-teal-700">+ Add option</button></div>}
+                  </div>
+                ))}
               </div>
 
               {/* Red-Flag Checklist */}

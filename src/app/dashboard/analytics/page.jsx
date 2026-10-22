@@ -151,6 +151,55 @@ export default function AnalyticsPage() {
         <HealthCard label="Active users (7 days)" value={data?.platformHealth?.totalActiveUsers || 0} icon={Users} />
         <HealthCard label="Avg provider response" value={data?.platformHealth?.avgProviderResponseTime || "N/A"} icon={Activity} />
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartCard title="Users and providers by country">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data?.countryStats || []} margin={{ bottom: 45 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+              <XAxis dataKey="label" angle={-30} textAnchor="end" interval={0} height={70} fontSize={11} />
+              <YAxis fontSize={12} allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="clients" name="Clients" stackId="users" fill="#0D9488" />
+              <Bar dataKey="providers" name="Providers" stackId="users" fill="#2563EB" radius={[5, 5, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        <ChartCard title="Jobs by country">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data?.countryStats || []} margin={{ bottom: 45 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+              <XAxis dataKey="label" angle={-30} textAnchor="end" interval={0} height={70} fontSize={11} />
+              <YAxis fontSize={12} allowDecimals={false} />
+              <Tooltip />
+              <Bar dataKey="jobsPosted" name="Posted" fill="#F59E0B" radius={[5, 5, 0, 0]} />
+              <Bar dataKey="jobsCompleted" name="Completed" fill="#0D9488" radius={[5, 5, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+      </div>
+
+      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <h3 className="text-lg font-bold text-slate-900">Revenue by country</h3>
+        <p className="mb-5 text-sm text-slate-500">Amounts are shown in each market’s local currency and are not foreign-exchange normalized.</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {(data?.countryStats || []).map(row => <div key={row.country} className="rounded-xl border border-slate-200 p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-400">{row.label}</p><p className="mt-2 text-xl font-black text-slate-900">{Number(row.revenue || 0).toLocaleString()} <span className="text-xs text-slate-500">{row.currency}</span></p><p className="mt-1 text-xs text-slate-500">{Number(row.coins || 0).toLocaleString()} coins credited</p></div>)}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="mb-5">
+          <h3 className="text-lg font-bold text-slate-900">Users by country</h3>
+          <p className="text-sm text-slate-500">Registered clients and providers across Fixam markets.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead><tr className="border-b text-xs uppercase tracking-wide text-slate-400"><th className="py-3">Country</th><th className="py-3 text-right">Total users</th><th className="py-3 text-right">Clients</th><th className="py-3 text-right">Providers</th><th className="py-3 text-right">Verified</th><th className="py-3 text-right">Jobs</th><th className="py-3 text-right">Completed</th><th className="py-3 text-right">Revenue</th></tr></thead>
+            <tbody>{(data?.countryStats || []).map(row => <tr key={row.country} className="border-b last:border-0"><td className="py-4 font-bold text-slate-900">{row.label}</td><td className="py-4 text-right font-black">{row.totalUsers}</td><td className="py-4 text-right">{row.clients}</td><td className="py-4 text-right">{row.providers}</td><td className="py-4 text-right">{row.verifiedProviders}</td><td className="py-4 text-right">{row.jobsPosted}</td><td className="py-4 text-right">{row.jobsCompleted}</td><td className="whitespace-nowrap py-4 text-right font-bold">{Number(row.revenue || 0).toLocaleString()} {row.currency}</td></tr>)}</tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }
