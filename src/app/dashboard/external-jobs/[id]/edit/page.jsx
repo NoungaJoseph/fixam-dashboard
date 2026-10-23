@@ -17,7 +17,7 @@ export default function EditExternalJobPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [loaded, setLoaded] = useState(false)
-  const [form, setForm] = useState({ title: "", companyName: "", destinationEmail: "", expiryDate: "", category: "", country: "Cameroon", currency: "XAF", location: "", salary: "", isRemote: false, selected: { description: true }, content: { description: "" }, applicationQuestions: [] })
+  const [form, setForm] = useState({ title: "", companyName: "", destinationEmail: "", expiryDate: "", category: "", country: "Cameroon", currency: "XAF", location: "", salary: "", providersNeeded: 1, isRemote: false, selected: { description: true }, content: { description: "" }, applicationQuestions: [] })
 
   useEffect(() => {
     if (!id) return
@@ -28,7 +28,7 @@ export default function EditExternalJobPage() {
       setForm({
         title: job.title || "", companyName: job.companyName || "", destinationEmail: job.destinationEmail || "",
         expiryDate: job.expiryDate ? new Date(job.expiryDate).toISOString().slice(0, 10) : "", category: job.category || "",
-        country: job.country || "Cameroon", currency: job.currency || "XAF", location: job.location || "", salary: job.salary || "", isRemote: Boolean(job.isRemote),
+        country: job.country || "Cameroon", currency: job.currency || "XAF", location: job.location || "", salary: job.salary || "", providersNeeded: job.providersNeeded || 1, isRemote: Boolean(job.isRemote),
         selected: { description: true, ...(job.requirements ? { requirements: true } : {}), ...Object.fromEntries(detailItems.map(item => [item.key, true])) },
         content, applicationQuestions: Array.isArray(job.applicationQuestions) ? job.applicationQuestions : [],
       })
@@ -46,6 +46,7 @@ export default function EditExternalJobPage() {
       await dashboardService.updateExternalJob(id, {
         title: form.title.trim(), companyName: form.companyName.trim(), destinationEmail: form.destinationEmail.trim().toLowerCase(),
         expiryDate: form.expiryDate, category: form.category, country: form.country, currency: form.currency, location: form.isRemote ? "Remote" : form.location.trim(), salary: form.salary.trim() || null,
+        providersNeeded: Number(form.providersNeeded) || 1,
         isRemote: form.isRemote, description: form.content.description.trim(), requirements: form.content.requirements?.trim() || null,
         details, applicationQuestions: form.applicationQuestions,
       })
@@ -66,6 +67,7 @@ export default function EditExternalJobPage() {
         <Field label="Company name *"><input required value={form.companyName} onChange={e => update("companyName", e.target.value)} /></Field>
         <Field label="Application email *"><input required type="email" value={form.destinationEmail} onChange={e => update("destinationEmail", e.target.value)} /></Field>
         <Field label="Expiry date *"><input required type="date" value={form.expiryDate} onChange={e => update("expiryDate", e.target.value)} /></Field>
+        <Field label="Providers needed *"><input required type="number" min="1" max="100" value={form.providersNeeded} onChange={e => update("providersNeeded", e.target.value)} placeholder="1" /></Field>
         <Field label="Category"><input value={form.category} onChange={e => update("category", e.target.value)} /></Field>
         <Field label="Country *"><select required value={form.country} onChange={e => { const selected = countries.find(([name]) => name === e.target.value); setForm(previous => ({ ...previous, country: e.target.value, currency: selected?.[1] || "XAF" })) }}>{countries.map(([name, currency]) => <option key={name} value={name}>{name} ({currency})</option>)}</select></Field>
         <Field label="Currency"><input value={form.currency} readOnly /></Field>
