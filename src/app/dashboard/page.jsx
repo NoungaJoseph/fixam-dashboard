@@ -3,19 +3,28 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Activity, CreditCard, Users, RefreshCw, ChevronRight, TrendingUp, Clock, ArrowUpRight } from "lucide-react"
+import { Activity, CreditCard, Users, RefreshCw, ChevronRight, TrendingUp, Clock, ArrowUpRight, Globe } from "lucide-react"
 import { Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 import { dashboardService } from "@/services/api"
 
 export default function OverviewPage() {
   const router = useRouter()
   const [stats, setStats] = useState(null)
+  const [analytics, setAnalytics] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const fetchOverview = async () => {
     try {
-      const res = await dashboardService.getStats()
-      setStats(res.data?.data || {})
+      const [statsRes, analyticsRes] = await Promise.allSettled([
+        dashboardService.getStats(),
+        dashboardService.getAnalytics()
+      ])
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value.data?.data || {})
+      }
+      if (analyticsRes.status === "fulfilled") {
+        setAnalytics(analyticsRes.value.data?.data || {})
+      }
     } catch (error) {
       console.error("Failed to load overview stats:", error)
     } finally {
@@ -222,6 +231,98 @@ export default function OverviewPage() {
                 <Line type="monotone" dataKey="active" name="Active Users" stroke="#3B82F6" strokeWidth={2.5} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Admin Country Analytics Section */}
+      <div className="border-t border-[#DCE4EE] pt-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <Globe className="h-5 w-5 text-[#0D9488]" />
+              <h2 className="text-lg font-black tracking-tight text-[#081B3A]">Admin Country Analytics</h2>
+            </div>
+            <p className="text-xs text-[#597297] mt-0.5">
+              Breakdown of total users, clients, providers, and verified pros across supported markets. Click any row to filter and manage users.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/users"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0D9488] hover:text-teal-800 transition-colors self-start sm:self-center"
+          >
+            <span>Manage All Users</span>
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/75 text-xs uppercase tracking-wider text-slate-500 font-bold">
+                  <th className="py-3.5 px-6">Country</th>
+                  <th className="py-3.5 px-6 text-right">Total users</th>
+                  <th className="py-3.5 px-6 text-right">Clients</th>
+                  <th className="py-3.5 px-6 text-right">Providers</th>
+                  <th className="py-3.5 px-6 text-right">Verified providers</th>
+                  <th className="py-3.5 px-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(!analytics?.countryStats || analytics.countryStats.length === 0) ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">
+                      Loading country analytics...
+                    </td>
+                  </tr>
+                ) : (
+                  analytics.countryStats.map((row) => (
+                    <tr 
+                      key={row.country} 
+                      className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+                      onClick={() => router.push(`/dashboard/users?country=${encodeURIComponent(row.country)}`)}
+                    >
+                      <td className="py-4 px-6 font-bold text-slate-900 flex items-center gap-2.5">
+                        <span className="text-base">
+                          {row.country === 'Cameroon' ? '🇨🇲' :
+                           row.country === 'Nigeria' ? '🇳🇬' :
+                           row.country === 'Ivory Coast' ? '🇨🇮' :
+                           row.country === 'Ghana' ? '🇬🇭' :
+                           row.country === 'Senegal' ? '🇸🇳' :
+                           row.country === 'Kenya' ? '🇰🇪' :
+                           row.country === 'Uganda' ? '🇺🇬' :
+                           row.country === 'Tanzania' ? '🇹🇿' :
+                           row.country === 'Rwanda' ? '🇷🇼' :
+                           row.country === 'South Africa' ? '🇿🇦' :
+                           row.country === 'Egypt' ? '🇪🇬' : '🌍'}
+                        </span>
+                        <span>{row.label || row.country}</span>
+                      </td>
+                      <td className="py-4 px-6 text-right font-black text-slate-900">
+                        {row.totalUsers}
+                      </td>
+                      <td className="py-4 px-6 text-right font-medium text-slate-600">
+                        {row.clients}
+                      </td>
+                      <td className="py-4 px-6 text-right font-medium text-slate-600">
+                        {row.providers}
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-600">
+                          {row.verifiedProviders}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0D9488] group-hover:underline">
+                          View Users <ChevronRight className="h-3.5 w-3.5" />
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
